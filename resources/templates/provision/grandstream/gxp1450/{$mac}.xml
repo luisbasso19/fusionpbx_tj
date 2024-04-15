@@ -12,7 +12,8 @@
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
 <!-- P1650 = 1 -->
-
+<!-- TJPR UPDATE -->
+<P4428>1</P4428>
 
 <!-- P value changed since 1.0.5.26 -->
 
@@ -32,7 +33,6 @@
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
 <!-- P1684 = 1 -->
-
 
 <!-- P values' default value changed since 1.0.5.15 -->
 
@@ -209,7 +209,7 @@
 <!-- Account Name -->
 <!-- String -->
 <!-- P270 = -->
-
+<P270>{$user_id_1}</P270>
 <!-- SIP Server -->
 <!-- String -->
 <P47>{$account.1.server_address}</P47>
@@ -240,7 +240,7 @@
 
 <!-- Voice Mail UserID -->
 <!-- String -->
-<P33>{$voicemail_number}</P33>
+<P33>*97</P33>
 
 
 <!-- Account 1/Network Settings -->
@@ -302,7 +302,7 @@
 <!-- Local SIP Port. Default is 5060 -->
 <!-- Number -->
 <!-- Mandatory -->
-<P40>5060</P40>
+<!-- <P40>5060</P40> -->
 
 <!-- SIP Registration Failure Retry Wait Time (in seconds). Default is 20 -->
 <!-- Number: 1 - 3600 -->
@@ -324,7 +324,22 @@
 <!-- SIP Transport. 0 - UDP, 1 - TCP, 2 - TLS/TCP. Default is 0 -->
 <!-- Number: 0, 1, 2 -->
 <!-- Mandatory -->
-<P130>0</P130>
+<!-- <P130>0</P130> -->
+<!--{if $account.1.sip_transport == 'udp'}	-->
+<!--	<P130>0</P130>				-->
+<!--	<P40>5060</P40>				-->
+<!--{/if}					-->
+<!--{if $account.1.sip_transport == 'tcp'}	-->
+<!--	<P130>1</P130>				-->
+<!--	<P40>5060</P40>				-->
+<!--{/if}					-->
+<!--{if $account.1.sip_transport == 'tls'}	-->
+<!--	<P130>2</P130>				-->
+<!--	<P40>5061</P40>				-->
+<!--{/if}					-->
+<P130>{$gxp1450_line_sip_transport}</P130>
+<P40>{$gxp1450_line_sip_port}</P40>
+
 
 <!-- SIP URI Scheme When Using TLS. 0 - sip, 1 - sips. Default is 1 -->
 <!-- Number: 0, 1 -->
@@ -417,7 +432,7 @@
 
 <!-- Conference URI -->
 <!-- String -->
-<P2318>{if $nway_conference == 'true'}nway{$account.1.user_id}@{$account.1.server_address}{/if}</P2318>
+<P2318></P2318>
 
 <!-- Music On Hold URI -->
 <!-- String -->
@@ -519,17 +534,17 @@
 <!-- Send DTMF: In-audio. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P2301>0</P2301>
+<P2301>{$grandstream_send_dtmf_in_audio}</P2301>
 
 <!-- Send DTMF: Via RTP (RFC2833). 0 - No, 1 - Yes. Default is 1 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P2302>1</P2302>
+<P2302>{$grandstream_send_dtmf_via_rtp}</P2302>
 
 <!-- Send DTMF: Via SIP INFO. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P2303>0</P2303>
+<P2303>{$grandstream_send_dtmf_via_sip_info}</P2303>
 
 <!-- DTMF Payload Type. Default is 101 -->
 <!-- Number: 96 - 127 -->
@@ -581,7 +596,8 @@
 <!-- SRTP Mode. 0 - Disabled, 1 - Enabled but not forced, 2 - Enabled and forced, 3 - Optional. Default is 0 -->
 <!-- Number: 0, 1, 2, 3 -->
 <!-- Mandatory -->
-<P183>0</P183>
+<!-- <P183>0</P183> -->
+<P183>{$grandstream_srtp_account1}</P183>
 
 <!-- Symmetric RTP. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
@@ -659,7 +675,7 @@
 <!-- Enable Call Features.  0 - No, 1 - Yes. Default is 1 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P191>1</P191>
+<P191>0</P191>
 
 <!-- Call Log. 0 - Log All, 1 - Log Incoming/Outgoing only (Missed calls NOT recorded), 2 - Disable Call Log. Default is 0 -->
 <!-- Number: 0, 1, 2 -->
@@ -673,33 +689,33 @@
 
 <!-- Matching Incoming Caller ID. Matching Rule 1 -->
 <!-- String -->
-<P1488>{$grandstream_distinctive_ringtone_name_1}</P1488>
+<P1488></P1488>
 
 <!-- Matching Rule 1 Distinctive Ringtone -->
 <!-- 0 - system ring tone, 1 - custom ring tone 1, 2 - custom ring tone 2, 3 - custom ring tone 3. Default is 0. -->
 <!-- Number: 0, 1, 2, 3 -->
 <!-- Mandatory -->
-<P1489>{$grandstream_distinctive_ringtone_1}</P1489>
+<P1489>0</P1489>
 
 <!-- Matching Incoming Caller ID. Matching Rule 2 -->
 <!-- String -->
-<P1490>{$grandstream_distinctive_ringtone_name_2}</P1490>
+<P1490></P1490>
 
 <!-- Matching Rule 2 Distinctive Ringtone -->
 <!-- 0 - system ring tone, 1 - custom ring tone 1, 2 - custom ring tone 2, 3 - custom ring tone 3. Default is 0 -->
 <!-- Number: 0, 1, 2, 3 -->
 <!-- Mandatory -->
-<P1491>{$grandstream_distinctive_ringtone_2}</P1491>
+<P1491>0</P1491>
 
 <!-- Matching Incoming Caller ID. Matching Rule 3 -->
 <!-- String -->
-<P1492>{$grandstream_distinctive_ringtone_name_3}</P1492>
+<P1492></P1492>
 
 <!-- Matching Rule 3 Distinctive Ringtone -->
 <!-- 0 - system ring tone, 1 - custom ring tone 1, 2 - custom ring tone 2, 3 - custom ring tone 3. Default is 0 -->
 <!-- Number: 0, 1, 2, 3 -->
 <!-- Mandatory -->
-<P1493>{$grandstream_distinctive_ringtone_3}</P1493>
+<P1493>0</P1493>
 
 <!-- Ring Timeout (in seconds). Default is 60 -->
 <!-- Number: 30 - 3600 -->
@@ -744,7 +760,7 @@
 <!-- Use # as Dial Key. 0 - No, 1 - Yes. Default is 1 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P72>1</P72>
+<P72>0</P72>
 
 <!-- DND Call Feature ON -->
 <!-- String -->
@@ -799,7 +815,7 @@
 
 <!-- Voice Mail UserID -->
 <!-- String -->
-<P426>{$voicemail_number}</P426>
+<P426>*97</P426>
 
 
 <!-- Account 2/Network Settings -->
@@ -974,7 +990,7 @@
 
 <!-- Conference URI -->
 <!-- String -->
-<P2418>{if $nway_conference == 'true'}nway{$account.2.user_id}@{$account.2.server_address}{/if}</P2418>
+<P2418></P2418>
 
 <!-- Music On Hold URI -->
 <!-- String -->
@@ -1138,7 +1154,8 @@
 <!-- 0 - Disabled, 1 - Enabled but not forced, 2 - Enabled and forced, 3 - Optional. Default is 0 -->
 <!-- Number: 0, 1, 2, 3 -->
 <!-- Mandatory -->
-<P443>0</P443>
+<!-- <P443>0</P443> -->
+<P443>{$grandstream_srtp_account2}</P443>
 
 <!-- Symmetric RTP. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
@@ -1211,7 +1228,7 @@
 <!-- Enable Call Features. 0 - No, 1 - Yes. Default is 1 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P420>1</P420>
+<P420>{$grandstream_gxp1450_call_features}</P420>
 
 <!-- Call Log. 0 - Log All, 1 - Log Incoming/Outgoing only (Missed calls NOT recorded), 2 - Disable Call Log. Default is 0 -->
 <!-- Number: 0, 1, 2 -->
@@ -1313,7 +1330,7 @@
 <!-- Internet Protocol. 0 - Prefer IPv4, 1 - Prefer IPv6. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-{if isset($grandstream_ipv_mode)}<P1415>{$grandstream_ipv_mode}</P1415>{else}<P1415>0</P1415>{/if}
+<P1415>0</P1415>
 
 <!-- IP Address Mode. 0 - DHCP, 1 - Static IP, 2 - PPPoE. Default is 0 -->
 <!-- Number: 0, 1, 2 -->
@@ -1325,7 +1342,7 @@
 
 <!-- Host name, DHCP option 12. Max length allowed is 64 characters -->
 <!-- String -->
-<P146></P146>
+<P146>{$device_description}</P146>
 
 <!-- Vendor Class ID, DHCP option 60. Max length allowed is 64 characters -->
 <!-- Default value for GXP1450 - Grandstream GXP1450 -->
@@ -1492,7 +1509,8 @@
 <!-- Layer 2 QoS. 802.1Q/VLAN Tag (VLAN classification for RTP). Default is 0 -->
 <!-- Number: 0 - 4094 -->
 <!-- Mandatory -->
-<P51>0</P51>
+<!--<P51>0</P51> -->
+<P51>{$grandstream_vlan_tag}</P51>
 
 <!-- Layer 2 QoS. 802.1p priority value (0 - 7). Default is 0 -->
 <!-- Number: 0 - 7 -->
@@ -1502,12 +1520,12 @@
 <!-- PC Port Mode. 0 - Enable, 1 - Disabled, 2 - Mirrored. Default is 0 -->
 <!-- Number: 0, 1, 2 -->
 <!-- Mandatory -->
-<P1348>0</P1348>
+<P1348>{$grandstream_pc_port_mode}</P1348>
 
 <!-- Enable LLDP.  0 - Disabled, 1 - Enabled. Default is 1 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P1684>1</P1684>
+<P1684>{$grandstream_lldp_enabled}</P1684>
 
 
 
@@ -1546,12 +1564,14 @@
 
 <!--  HTTP/HTTPS Password -->
 <!--  String; between ascii values 33 and 126 -->
-<P1361>{$http_auth_password}</P1361>
+<!-- <P1361>{$http_auth_password}</P1361> -->
+<P1361>{$phone_provision_password}</P1361>
 
 <!-- Firmware Upgrade Via. 0 - TFTP Upgrade,  1 - HTTP Upgrade, 2 - HTTPS Upgrade. Default is 1 -->
 <!-- Number: 0, 1, 2 -->
 <!-- Mandatory -->
-<P212>2</P212>
+<!-- <P212>2</P212>-->
+<P212>{$grandstream_firmware_upgrade_via}</P212>
 
 <!-- Firmware Server Path -->
 <!-- String -->
@@ -1593,27 +1613,28 @@
 <!-- When set to Yes(1), it will override the configured provision path and method -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-{if isset($grandstream_dhcp_option_override)}<P145>{$grandstream_dhcp_option_override}</P145>{else}<P145>1</P145>{/if}
+<P145>1</P145>
 
 <!-- Allow DHCP Option 120 to Override SIP Server -->
 <!-- 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-{if isset($grandstream_dhcp_option_override_sip_server)}<P1411>{$grandstream_dhcp_option_override_sip_server}</P1411>{else}<P1411>0</P1411>{/if}
+<P1411>0</P1411>
 
 <!-- Automatic Upgrade. 0 - No, 1 - Yes. Default is No -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P194>0</P194>
+<P194>{$grandstream_type_of_check_upgrade}</P194>
 
 <!-- Check for New Firmware Every () Minutes. Default is 7 days. -->
 <!-- Number: 60-86400 -->
 <!-- Mandatory -->
-<P193>10080</P193>
+<!--P193>120</P193> -->
+<P193>{$grandstream_minutes_update}</P193>
 
 <!-- Hour of the Day (0-23). Default is 1 -->
 <!-- Number: 0 - 23 -->
-<P285>1</P285>
+<P285>{$grandstream_update_time_of_day}</P285>
 
 <!-- Day of the Week (0-6). Default is 1 -->
 <!-- Number: 0-6 -->
@@ -1629,17 +1650,17 @@
 
 <!-- Syslog Server (name of the server, max length is 64 characters) -->
 <!-- String -->
-<P207></P207>
+<P207>{$grandstream_syslog_server}</P207>
 
 <!-- Syslog Level. 0 - NONE, 1 - DEBUG, 2 - INFO, 3 - WARNING, 4 - ERROR. Default is 0 -->
 <!-- Number: 0, 1 , 2, 3, 4 -->
 <!-- Mandatory -->
-<P208>0</P208>
+<P208>{$grandstream_syslog_level}</P208>
 
 <!-- Send SIP Log. 0 - Do not send SIP log in Syslog, 1 - Send SIP log in Syslog if configured and set to DEBUG level. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P1387>0</P1387>
+<P1387>{$grandstream_send_sip_log}</P1387>
 
 <!-- Auto recover from abnormal. 0 - No, 1 - Yes. Default is 1 -->
 <!-- Number: 0, 1 -->
@@ -1661,7 +1682,8 @@
 <!-- gxp - Downloaded Language -->
 <!-- String -->
 <!-- Mandatory -->
-<P1362>auto</P1362>
+<!-- <P1362>auto</P1362> -->
+<P1362>{$gradstream_display_language_gxp1450}</P1362>
 
 <!-- Language File postfix (for Downloaded Language) -->
 <!-- String -->
@@ -1729,12 +1751,12 @@
 <!-- Configuration Via Keypad Menu. 0 - Unrestricted, 1 - Basic settings only, 2 - Constraint mode. Default is 0 -->
 <!-- Number: 0, 1, 2 -->
 <!-- Mandatory -->
-<P1357>0</P1357>
+<P1357>2</P1357>
 
 <!-- Enable STAR key Keypad locking. 0 - No, 1 - Yes. Default is 1 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P1382>1</P1382>
+<P1382>0</P1382>
 
 <!-- Password to lock/unlock (0-9 only) -->
 <!-- Number -->
@@ -1927,7 +1949,7 @@
 <!-- Disable Call Waiting. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P91>0</P91>
+<P91>{$grandstream_disable_call_waiting}</P91>
 
 <!-- Disable Call-Waiting Tone. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
@@ -1962,16 +1984,12 @@
 <!-- Disable DND Button. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P1340>0</P1340>
+<P1340>1</P1340>
 
 <!-- Enable Idle Mute. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-{if isset($grandstream_idle_mute_function_old)}
-    <P1565>{$grandstream_idle_mute_function_old}</P1565>
-{else}
-    <P1565>0</P1565>
-{/if}
+<P1565>0</P1565>
 
 <!-- Disable Transfer. 0 - No, 1 - Yes. Defauls is 0 -->
 <!-- Number: 0, 1 -->
@@ -1990,7 +2008,7 @@
 <!-- Do not escape '#' as 23% in SIP URL. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P1406>0</P1406>
+<P1406>1</P1406>
 
 <!-- Click-To-Dial Feature. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
@@ -2064,16 +2082,12 @@
 <!-- HEADSET Key Mode. 0 = Default Mode, 1 = Toggle Headset/Speaker. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-{if isset($grandstream_headset_key_mode)}
-    <P1312>{$grandstream_headset_key_mode}</P1312>
-{/if}
+<P1312>0</P1312>
 
 <!-- Always Ring Speaker. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-{if isset($grandstream_headset_ring)}
-<P1439>{$grandstream_headset_ring}</P1439>
-{/if}
+<P1439>0</P1439>
 
 <!-- Headset TX gain(db). 1 - -6, 0 - 0, 2 - +6. Default is 0 -->
 <!-- Number: 0, 1, 2 -->
@@ -2129,7 +2143,8 @@
 
 <!-- NTP Server -->
 <!-- String -->
-<P30>us.pool.ntp.org</P30>
+<!-- <P30>us.pool.ntp.org</P30> -->
+<P30>{$ntp_server_primary}</P30>
 
 <!-- Allow DHCP Option 42 to override NTP server. 0 - No, 1 - Yes. Default is 1 -->
 <!-- When set to Yes(1), it will override the configured NTP server -->
@@ -2199,18 +2214,20 @@
 <!-- customize - Self-Defined Time Zone -->
 <!-- String -->
 <!-- Mandatory -->
-<P64>auto</P64>
+<!-- <P64>auto</P64> -->
+<P64>{$grandstream_timezone_gxp1450}</P64>
 
 <!-- Allow DHCP Option 2 to override Time Zone setting. 0 - No, 1 - Yes. Default is 1 -->
 <!-- When set to Yes(1), it will override the configured Time Zone setting if available -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-{if isset($grandstream_dhcp_time_zone)}<P143>{$grandstream_dhcp_time_zone}</P143>{else}<P143>0</P143>{/if}
+<P143>1</P143>
 
 <!-- Self Defined Time zone. Max length allowed is 64 characters -->
 <!-- String -->
 <!-- Mandatory -->
-<P246>MTZ+6MDT+5,M4.1.0,M11.1.0</P246>
+<!-- <P246>MTZ+6MDT+5,M4.1.0,M11.1.0</P246> -->
+<P246>{$grandstream_selfdefined_timezone_gxp1450}</P246>
 
 <!-- Date Display Format -->
 <!-- 0: yyyy-mm-dd      eg. 2011-10-31 -->
@@ -2220,12 +2237,14 @@
 <!-- 4: MMMM dd, dddd   eg. October 31, Monday -->
 <!-- Number: 0, 1, 2, 3, 4 -->
 <!-- Mandatory -->
-<P102>0</P102>
+<!-- <P102>0</P102> -->
+<P102>{$grandstream_date_format}</P102>
 
 <!-- Time Display Format. 0 - 12 Hour, 1 - 24 Hour -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P122>0</P122>
+<!-- <P122>0</P122> -->
+<P122>{$grandstream_time_format}</P122>
 
 
 <!-- Settings/Web Service -->
@@ -2235,7 +2254,7 @@
 <!-- Enable weather update. 0 - No, 1 - Yes. Default is 1 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P1402>1</P1402>
+<P1402>0</P1402>
 
 <!-- City Code -->
 <!-- 0 - Use Self-Defined City Code, 1 - Automatic. Default is 1 -->
@@ -2265,12 +2284,15 @@
 <!-- 0 - No, 1 - YES, HTTP, 2 - YES, TFTP, 3 - YES, HTTPS. Default is 0 -->
 <!-- Number: 0, 1, 2, 3 -->
 <!-- Mandatory -->
-<P340>0</P340>
+<!-- <P340>0</P340> -->
+<P340>{$grandstream_idle_screen_download_gxp1450}</P340>
 
 <!-- Download Screen XML At Boot-up. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
 <!-- Mandatory -->
-<P1349>0</P1349>
+<P1349>1</P1349>
+<!--<P1349>{$grandstream_idle_screen_download_gxp1450}</P1349>-->
+
 
 <!-- Use Custom File Name. 0 - No, 1 - Yes. Default is 0 -->
 <!-- Number: 0, 1 -->
@@ -2281,7 +2303,9 @@
 <!-- This is a string of up to 256 characters that should contain a path to the XML file -->
 <!-- It MUST be in the host/path format. For example: directory.grandstream.com/engineering -->
 <!-- String -->
-<P341></P341>
+<!-- <P341></P341> -->
+
+<P341>{$grandstream_idle_screen_gxp1450}</P341>
 
 
 

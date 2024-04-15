@@ -364,6 +364,8 @@
 			}
 			$dialplan_xml .= "		<action application=\"set\" data=\"cc_export_vars=\${cc_export_vars},".$export_variables."\"/>\n";
 			$dialplan_xml .= "		<action application=\"set\" data=\"hangup_after_bridge=true\"/>\n";
+			$dialplan_xml .= "              <action application=\"set\" data=\"RECORD_HANGUP_ON_ERROR=true\"/>\n";
+			$dialplan_xml .= "              <action application=\"set\" data=\"result=\${luarun(anuncio_call_center.lua \${uuid} ".$queue_extension."@".$_SESSION["domain_name"]." 25000)}\"/>\n";
 			if (!empty($queue_time_base_score_sec)) {
 				$dialplan_xml .= "		<action application=\"set\" data=\"cc_base_score=".xml::sanitize($queue_time_base_score_sec)."\"/>\n";
 			}

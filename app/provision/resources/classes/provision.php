@@ -1135,6 +1135,7 @@
 					$view->assign("firmware_version", $device_firmware_version);
 					$view->assign("domain_name", $domain_name);
 					$view->assign("project_path", PROJECT_PATH);
+//<<<<<<< Updated upstream
 					$view->assign("server1_address", $server1_address ?? '');
 					$view->assign("proxy1_address", $proxy1_address ?? '');
 					$view->assign("user_id", $user_id ?? '');
@@ -1144,6 +1145,17 @@
 					$view->assign("device_location", $device_location);
 					$view->assign("microtime", microtime(true));
 
+//=======
+					$view->assign("server1_address", $server1_address);
+					$view->assign("proxy1_address", $proxy1_address);
+					$view->assign("user_id",$user_id);
+					$view->assign("password",$password);
+					$view->assign("template",$device_template);
+					$view->assign("location",$device_location);
+					$view->assign("device_location",$device_location);
+					$view->assign("microtime",microtime(true));
+					$view->assign("device_description", $device_description); //incluso na migracao fusion
+//>>>>>>> Stashed changes
 				//personal ldap password
 					global $laddr_salt;
 					if (is_uuid($device_user_uuid)) {

@@ -425,7 +425,9 @@
 			$pdf_filename = "cdr_".date("Ymd_His").".pdf";
 		}
 		else {
-			$pdf_filename = "cdr_".$_SESSION['domain_name']."_".date("Ymd_His").".csv";
+			//###TJPR UPDATE
+			//$pdf_filename = "cdr_".$_SESSION['domain_name']."_".date("Ymd_His").".csv";
+			$pdf_filename = "cdr_".$_SESSION['domain_name']."_".date("Ymd_His").".pdf";
 		}
 
 		header("Content-Type: application/force-download");

@@ -1,2 +1,9 @@
 User-agent: *
 Disallow: /
+
+User-agent: Yealink
+Allow: /resources/firmware/
+
+User-agent: Grandstream
+Allow: /resources/firmware/
+

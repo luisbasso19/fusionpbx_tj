@@ -335,9 +335,9 @@
 					$dialplan_xml = "<extension name=\"".xml::sanitize($ivr_menu_name)."\" continue=\"false\" uuid=\"".xml::sanitize($dialplan_uuid)."\">\n";
 					$dialplan_xml .= "	<condition field=\"destination_number\" expression=\"^".xml::sanitize($ivr_menu_extension)."\$\">\n";
 					$dialplan_xml .= "		<action application=\"ring_ready\" data=\"\"/>\n";
-					if ($_SESSION['ivr_menu']['answer']['boolean'] == 'true') {
+					//if ($_SESSION['ivr_menu']['answer']['boolean'] == 'true') {
 						$dialplan_xml .= "		<action application=\"answer\" data=\"\"/>\n";
-					}
+					//}
 					$dialplan_xml .= "		<action application=\"sleep\" data=\"1000\"/>\n";
 					$dialplan_xml .= "		<action application=\"set\" data=\"hangup_after_bridge=true\"/>\n";
 					if (!empty($ivr_menu_ringback)) {
