@@ -87,6 +87,7 @@
 //get variables used to control the order
 	$order_by = $_GET["order_by"] ?? '';
 	$order = $_GET["order"] ?? '';
+	$sort = $order_by == 'conference_center_extension' ? 'natural' : null;
 
 //add the search term
 	$search = strtolower($_GET["search"] ?? '');
@@ -125,7 +126,7 @@
 
 //get the list
 	$sql = str_replace('count(*)', '*', $sql);
-	$sql .= order_by($order_by, $order);
+	$sql .= order_by($order_by, $order, null, null, $sort);
 	$sql .= limit_offset($rows_per_page, $offset);
 	$database = new database;
 	$conference_centers = $database->select($sql, $parameters ?? null, 'all');
@@ -235,7 +236,7 @@
 			}
 			echo "	<td><a href='".$list_row_url."' title=\"".$text['button-edit']."\">".escape($row['conference_center_name'])."</a>&nbsp;</td>\n";
 			echo "	<td>".escape($row['conference_center_extension'])."&nbsp;</td>\n";
-			echo "	<td>".escape($row['conference_center_greeting'])."&nbsp;</td>\n";
+			echo "	<td>".escape(str_replace($_SESSION['switch']['recordings']['dir'].'/'.$_SESSION['domain_name'].'/','',$row['conference_center_greeting']))."&nbsp;</td>\n";
 			echo "	<td class='center'>".escape($row['conference_center_pin_length'])."&nbsp;</td>\n";
 			if (permission_exists('conference_center_edit')) {
 				echo "	<td class='no-link center'>\n";

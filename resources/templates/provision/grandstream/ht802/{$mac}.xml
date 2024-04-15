@@ -230,7 +230,7 @@
 
 
     <!-- # ACS URL -->
-    <!-- #P4503= -->
+    {if isset($grandstream_acs_url)}<P4503>{$grandstream_acs_url}</P4503>{else}<P4503></P4503>{/if}
 
     <!-- # ACS Username -->
     <!-- # String -->
@@ -256,11 +256,11 @@
 
     <!-- # Connection Request Username -->
     <!-- # String -->
-    <P4511></P4511>
+    <P4511>{$mac|replace:'-':''|upper}</P4511>
 
     <!-- # Connection Request Password -->
     <!-- # String -->
-    <P4512></P4512>
+    <P4512>{$mac|replace:'-':''|upper}</P4512>
 
     <!-- # CPE SSL Certificate -->
     <P8220></P8220>

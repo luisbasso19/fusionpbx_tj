@@ -28,10 +28,17 @@
 //if also viewing system status, show more recent calls (more room avaialble)
 	$missed_limit = !empty($selected_blocks) && (is_array($selected_blocks) && in_array('counts', $selected_blocks)) ? 10 : 5;
 
+//set the sql time format
+	$sql_time_format = 'DD Mon HH12:MI am';
+	if (!empty($_SESSION['domain']['time_format']['text'])) {
+		$sql_time_format = $_SESSION['domain']['time_format']['text'] == '12h' ? "DD Mon HH12:MI am" : "DD Mon HH24:MI";
+	}
+
 //get the missed calls from call detail records
 	$sql =	"select \n";
+	$sql .= "	status, \n";
 	$sql .=	"	direction, \n";
-	$sql .= "	to_char(timezone(:time_zone, start_stamp), '".(!empty($_SESSION['domain']['time_format']) && $_SESSION['domain']['time_format']['text'] == '12h' ? "MM/DD HH12:MI am" : "MM/DD HH24:MI")."') as start_date_time, \n";
+	$sql .= "	to_char(timezone(:time_zone, start_stamp), '".$sql_time_format."') as start_date_time, \n";
 	$sql .=	"	caller_id_name, \n";
 	$sql .=	"	caller_id_number, \n";
 	$sql .=	"	answer_stamp \n";
@@ -43,25 +50,32 @@
 	$sql .=	"		direction = 'inbound' \n";
 	$sql .=	"		or direction = 'local' \n";
 	$sql .=	"	) \n";
-	$sql .=	"	and (missed_call = true or bridge_uuid is null) ";
+	$sql .=	"	and (status = 'missed') ";
 	$sql .=	"	and hangup_cause <> 'LOSE_RACE' ";
-	if (!empty($assigned_extensions)) {
-		$x = 0;
-		foreach ($assigned_extensions as $assigned_extension_uuid => $assigned_extension) {
-			$sql_where_array[] = "extension_uuid = :assigned_extension_uuid_".$x;
-			$sql_where_array[] = "destination_number = :destination_number_".$x;
-			$parameters['assigned_extension_uuid_'.$x] = $assigned_extension_uuid;
-			$parameters['destination_number_'.$x] = $assigned_extension;
-			$x++;
+	if (!permission_exists('xml_cdr_domain')) {
+		if (!empty($assigned_extensions)) {
+			$x = 0;
+			foreach ($assigned_extensions as $assigned_extension_uuid => $assigned_extension) {
+				$sql_where_array[] = "extension_uuid = :assigned_extension_uuid_".$x;
+				$sql_where_array[] = "destination_number = :destination_number_".$x;
+				$parameters['assigned_extension_uuid_'.$x] = $assigned_extension_uuid;
+				$parameters['destination_number_'.$x] = $assigned_extension;
+				$x++;
+			}
+			if (!empty($sql_where_array)) {
+				$sql .= "and (".implode(' or ', $sql_where_array).") \n";
+			}
+			unset($sql_where_array);
 		}
-		if (!empty($sql_where_array)) {
-			$sql .= "and (".implode(' or ', $sql_where_array).") \n";
+		else {
+			$sql .= "and false \n";
 		}
-		unset($sql_where_array);
 	}
 	$sql .= "and start_epoch > ".(time() - 86400)." \n";
 	$sql .=	"order by \n";
 	$sql .=	"start_epoch desc \n";
+	$sql .=	"limit :missed_limit \n";
+	$parameters['missed_limit'] = $missed_limit;
 	$parameters['time_zone'] = isset($_SESSION['domain']['time_zone']['name']) ? $_SESSION['domain']['time_zone']['name'] : date_default_timezone_get();
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	if (!isset($database)) { $database = new database; }
@@ -140,7 +154,6 @@
 			) ? true : false;
 
 		foreach ($result as $index => $row) {
-			if ($index + 1 > $missed_limit) { break; } //only show limit
 			$start_date_time = str_replace('/0','/', ltrim($row['start_date_time'], '0'));
 			if (!empty($_SESSION['domain']['time_format']) && $_SESSION['domain']['time_format']['text'] == '12h') {
 				$start_date_time = str_replace(' 0',' ', $start_date_time);
@@ -163,7 +176,7 @@
 			echo "<tr ".$tr_link.">\n";
 			echo "<td valign='middle' class='".$row_style[$c]."' style='cursor: help; padding: 0 0 0 6px;'>\n";
 			if ($theme_cdr_images_exist) {
-				$call_result = ($row['answer_stamp'] != '') ? 'voicemail' : 'cancelled';
+				$call_result = $row['status'];
 				if (isset($row['direction'])) {
 					echo "	<img src='".PROJECT_PATH."/themes/".$_SESSION['domain']['template']['name']."/images/icon_cdr_".$row['direction']."_".$call_result.".png' width='16' style='border: none;' title='".$text['label-'.$row['direction']].": ".$text['label-'.$call_result]."'>\n";
 				}
@@ -178,7 +191,7 @@
 	unset($sql, $parameters, $result, $num_rows, $index, $row);
 
 	echo "</table>\n";
-	echo "<span style='display: block; margin: 6px 0 7px 0;'><a href='".PROJECT_PATH."/app/xml_cdr/xml_cdr.php?call_result=missed'>".$text['label-view_all']."</a></span>\n";
+	echo "<span style='display: block; margin: 6px 0 7px 0;'><a href='".PROJECT_PATH."/app/xml_cdr/xml_cdr.php?status=missed'>".$text['label-view_all']."</a></span>\n";
 	echo "</div>";
 	//$n++;
 
