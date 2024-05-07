@@ -138,6 +138,16 @@
 		missed_call_data = session:getVariable("missed_call_data");
 		sip_code = session:getVariable("last_bridge_proto_specific_hangup_cause");
 
+		---TJPR UPDATE
+                sipReferredBy = session:getVariable("sip_h_Referred-By")
+                sip_req_user = session:getVariable("sip_req_user")
+                fifo_status = session:getVariable("fifo_status")
+                cc_queue = session:getVariable("cc_queue")
+                destination_number = session:getVariable("destination_number")
+                rdnis = session:getVariable("rdnis")
+		queue_extension = session:getVariable("queue_extension")
+                ---TJPR UPDATE
+
 		if (debug["info"] == true) then
 			freeswitch.consoleLog("INFO", "[failure_handler] originate_causes: " .. tostring(originate_causes) .. "\n");
 			freeswitch.consoleLog("INFO", "[failure_handler] originate_disposition: " .. tostring(originate_disposition) .. "\n");
@@ -175,22 +185,48 @@
 								if (forward_busy_destination == nil) then
 									freeswitch.consoleLog("NOTICE", "[failure_handler] forwarding on busy to hangup\n");
 									session:hangup("USER_BUSY");
+									---TJPR UPDATE
+                                                                        session:execute("respond", "486");
+                                                                        ---TJPR UPDATE
 								else
 									freeswitch.consoleLog("NOTICE", "[failure_handler] forwarding on busy to: " .. forward_busy_destination .. "\n");
 									session:transfer(forward_busy_destination, "XML", context);
 								end
 							else
 								--send missed call notification
+								
+
 								missed();
 
 								--handle USER_BUSY - hangup
 								freeswitch.consoleLog("NOTICE", "[failure_handler] forward on busy with empty destination: hangup(USER_BUSY)\n");
 								session:hangup("USER_BUSY");
+								---TJPR UPDATE
+                                                                session:execute("respond", "486");
+                                                                ---TJPR UPDATE
 							end
+						---TJPR UPDATE
+                                                else
+                                                        if sipReferredBy and sip_req_user and fifo_status then
+                                                                session:setVariable("last_bridge_proto_specific_hangup_cause", "486")
+                                                                session:transfer(rdnis, "XML", context)
+							---TJPR UPDATE
+							elseif (queue_extension ~= nil) then
+                                                		local filaCallcenter = queue_extension .. "@" .. domain_name;
+                                                		local sip_h_Alert = session:getVariable("sip_h_Alert-Info")
+                                                		if (sip_h_Alert ~= nil) then
+                                                        		freeswitch.consoleLog("info", "DEBUG : sip_h_Alert-Info " .. sip_h_Alert .. "\n");
+                                                		end
+                                                		session:execute("callcenter", filaCallcenter)
+                                                        else
+                                                                session:hangup("USER_BUSY");
+                                                                session:execute("respond", "486");
+                                                        end
+                                                ---TJPR UPDATE
 						end
 					end
 
-			elseif (originate_disposition == "NO_ANSWER") or (originate_disposition == "ALLOTTED_TIMEOUT") or (sip_code == "sip:480") then
+			elseif (originate_disposition == "NO_ANSWER") or (sip_code == "sip:480") then
 
 				--handle NO_ANSWER
 				forward_no_answer_enabled = session:getVariable("forward_no_answer_enabled");
@@ -199,6 +235,8 @@
 					if (forward_no_answer_destination == nil) then
 						freeswitch.consoleLog("NOTICE", "[failure_handler] forwarding no answer to hangup\n");
 						session:hangup("NO_ANSWER");
+						--TJPR UPDATE
+                                                session:execute("respond", "408");
 					else
 						freeswitch.consoleLog("NOTICE", "[failure_handler] forwarding no answer to: " .. forward_no_answer_destination .. "\n");
 						session:transfer(forward_no_answer_destination, "XML", context);
@@ -206,6 +244,29 @@
 				else
 					--send missed call notification
 					missed();
+					--TJPR UPDATE
+					--queue_extension = session:getVariable("queue_extension")
+					if (queue_extension ~= nil) then
+		                        --        freeswitch.consoleLog("info", "DEBUG : FILA ORIGEM NAO ATENDIDA " .. queue_extension .. "\n");
+                		                local filaCallcenter = queue_extension .. "@" .. domain_name;
+						local sip_h_Alert = session:getVariable("sip_h_Alert-Info")
+						if (sip_h_Alert ~= nil) then
+							freeswitch.consoleLog("info", "DEBUG : sip_h_Alert-Info " .. sip_h_Alert .. "\n");
+						end
+						--session:execute("callcenter", filaCallcenter)
+						--session:execute("info")
+						--session:answer()
+						session:execute("callcenter", filaCallcenter)
+						--session:transfer(queue_extension, "XML", context)
+					else
+                                        	if sipReferredBy and sip_req_user and fifo_status then
+                                                	session:transfer(rdnis, "XML", context)
+                                        	else
+                                                	session:hangup("NO_ANSWER");
+                                                	session:execute("respond", "408");
+                                        	end
+					end
+                                        ---TJPR UPDATE
 				end
 				if (debug["info"] ) then
 					freeswitch.consoleLog("NOTICE", "[failure_handler] - NO_ANSWER\n");
@@ -225,8 +286,22 @@
 						session:transfer(forward_user_not_registered_destination, "XML", context);
 					end
 				else
-					--send missed call notification
-					missed();
+					---TJPR UPDATE
+					if (queue_extension ~= nil) then
+                                                local filaCallcenter = queue_extension .. "@" .. domain_name;
+                                                local sip_h_Alert = session:getVariable("sip_h_Alert-Info")
+                                                if (sip_h_Alert ~= nil) then
+                                                        freeswitch.consoleLog("info", "DEBUG : sip_h_Alert-Info " .. sip_h_Alert .. "\n");
+                                                end
+                                                session:execute("callcenter", filaCallcenter)
+					else
+					---TJPR UPDATE
+						--send missed call notification
+						missed();
+					---TJPR UPDATE
+						session:hangup("USER_NOT_REGISTERED");
+					end
+					---TJPR UPDATE
 				end
 
 				--send missed call notification
