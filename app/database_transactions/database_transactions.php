@@ -51,8 +51,8 @@
 	$order = $_GET["order"] ?? '';
 
 //set from session variables
-	$list_row_edit_button = !empty($_SESSION['theme']['list_row_edit_button']['boolean']) ? $_SESSION['theme']['list_row_edit_button']['boolean'] : 'false';
-	$button_icon_view = !empty($_SESSION['theme']['button_icon_view']) ? $_SESSION['theme']['button_icon_view'] : '';
+	$list_row_edit_button = $settings->get('theme', 'list_row_edit_button', false);
+	$button_icon_view = !empty($settings->get('theme', 'button_icon_view')) ? $settings->get('theme', 'button_icon_view') : '';
 
 //add the user filter and search term
 	if (!empty($_GET["user_uuid"])) {
@@ -67,7 +67,7 @@
 	$sql .= "from v_database_transactions as t ";
 	$sql .= "left outer join v_domains as d using (domain_uuid) ";
 	$sql .= "left outer join v_users as u using (user_uuid) ";
-	$sql .= "where t.domain_uuid = :domain_uuid ";
+	$sql .= "where (t.domain_uuid = :domain_uuid or t.domain_uuid is null) ";
 	if (!empty($user_uuid)) {
 		$sql .= "and t.user_uuid = :user_uuid ";
 		$parameters['user_uuid'] = $user_uuid;
@@ -86,7 +86,6 @@
 		$parameters['search'] = '%'.$search.'%';
 	};
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	$database = new database;
 	$num_rows = $database->select($sql, $parameters, 'column');
 	unset($parameters);
 
@@ -99,13 +98,13 @@
 	$offset = $rows_per_page * $page;
 
 //get the list
-	$sql = "select t.database_transaction_uuid, d.domain_name, u.username, ";
+	$sql = "select t.database_transaction_uuid, t.domain_uuid, d.domain_name, u.username, ";
 	$sql .= "t.user_uuid, t.app_name, t.app_uuid, t.transaction_code, ";
 	$sql .= "t.transaction_address, t.transaction_type, t.transaction_date ";
 	$sql .= "from v_database_transactions as t ";
 	$sql .= "left outer join v_domains as d using (domain_uuid) ";
 	$sql .= "left outer join v_users as u using (user_uuid) ";
-	$sql .= "where t.domain_uuid = :domain_uuid ";
+	$sql .= "where (t.domain_uuid = :domain_uuid or t.domain_uuid is null) ";
 	if (!empty($user_uuid)) {
 		$sql .= "and t.user_uuid = :user_uuid ";
 		$parameters['user_uuid'] = $user_uuid;
@@ -126,8 +125,7 @@
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	$sql .= order_by($order_by, $order, 't.transaction_date', 'desc');
 	$sql .= limit_offset($rows_per_page, $offset);
-	$database = new database;
-	$result = $database->select($sql, $parameters, 'all');
+	$transactions = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
 //get users
@@ -135,7 +133,6 @@
 	$sql .= "where domain_uuid = :domain_uuid ";
 	$sql .= "order by username ";
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	$database = new database;
 	$rows = $database->select($sql, $parameters, 'all');
 	if (!empty($rows)) {
 		foreach ($rows as $row) {
@@ -150,7 +147,7 @@
 
 //show the content
 	echo "<div class='action_bar' id='action_bar'>\n";
-	echo "	<div class='heading'><b>".$text['title-database_transactions']." (".$num_rows.")</b></div>\n";
+	echo "	<div class='heading'><b>".$text['title-database_transactions']."</b><div class='count'>".number_format($num_rows)."</div></div>\n";
 	echo "	<div class='actions'>\n";
 	echo 		"<form id='form_search' class='inline' method='get'>\n";
 	if (is_array($users) && @sizeof($users) != 0) {
@@ -164,8 +161,8 @@
 		echo "	</select>";
 	}
 	echo 		"<input type='text' class='txt list-search' name='search' id='search' value=\"".escape($search)."\" placeholder=\"".$text['label-search']."\" onkeydown=''>";
-	echo button::create(['label'=>$text['button-search'],'icon'=>$_SESSION['theme']['button_icon_search'],'type'=>'submit','id'=>'btn_search']);
-	//echo button::create(['label'=>$text['button-reset'],'icon'=>$_SESSION['theme']['button_icon_reset'],'type'=>'button','id'=>'btn_reset','onclick'=>"document.getElementById('search').value = ''; document.getElementById('form_search').submit();",'style'=>(!$search ? 'display: none;' : null)]);
+	echo button::create(['label'=>$text['button-search'],'icon'=>$settings->get('theme', 'button_icon_search'),'type'=>'submit','id'=>'btn_search']);
+	//echo button::create(['label'=>$text['button-reset'],'icon'=>$settings->get('theme', 'button_icon_reset'),'type'=>'button','id'=>'btn_reset','onclick'=>"document.getElementById('search').value = ''; document.getElementById('form_search').submit();",'style'=>(!$search ? 'display: none;' : null)]);
 	if (!empty($paging_controls_mini)) {
 		echo 	"<span style='margin-left: 15px;'>".$paging_controls_mini."</span>";
 	}
@@ -177,6 +174,7 @@
 	echo $text['description-database_transactions']."\n";
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table class='list'>\n";
 	echo "<tr class='list-header'>\n";
 	echo th_order_by('domain_name', $text['label-domain'], $order_by, $order);
@@ -186,16 +184,20 @@
 	echo th_order_by('transaction_address', $text['label-transaction_address'], $order_by, $order);
 	echo th_order_by('transaction_type', $text['label-transaction_type'], $order_by, $order);
 	echo th_order_by('transaction_date', $text['label-transaction_date'], $order_by, $order);
-	if (permission_exists('database_transaction_edit') && !empty($list_row_edit_button) && $list_row_edit_button == 'true') {
+	if (permission_exists('database_transaction_edit') && $list_row_edit_button) {
 		echo "	<td class='action-button'>&nbsp;</td>\n";
 	}
 	echo "</tr>\n";
-
-	if (!empty($result)) {
+	if (!empty($transactions)) {
 		$x = 0;
-		foreach($result as $row) {
+		foreach($transactions as $row) {
+			if (empty($row['domain_name'])) { $row['domain_name'] = $text['label-global']; }
+			$list_row_url = '';
 			if (permission_exists('database_transaction_edit')) {
 				$list_row_url = "database_transaction_edit.php?id=".urlencode($row['database_transaction_uuid']).(!empty($page) ? "&page=".urlencode($page) : null).(!empty($search) ? "&search=".urlencode($search) : null);
+				if ($row['domain_uuid'] != $_SESSION['domain_uuid'] && permission_exists('domain_select')) {
+					$list_row_url .= '&domain_uuid='.urlencode($row['domain_uuid']).'&domain_change=true';
+				}
 			}
 			echo "<tr class='list-row' href='".$list_row_url."'>\n";
 			echo "	<td>".escape($row['domain_name'])."&nbsp;</td>\n";
@@ -205,18 +207,18 @@
 			echo "	<td>".escape($row['transaction_address'])."&nbsp;</td>\n";
 			echo "	<td>".escape($row['transaction_type'])."&nbsp;</td>\n";
 			echo "	<td>".escape($row['transaction_date'])."&nbsp;</td>\n";
-			if (permission_exists('database_transaction_edit') && !empty($list_row_edit_button) && $list_row_edit_button == 'true') {
+			if (permission_exists('database_transaction_edit') && $list_row_edit_button) {
 				echo "	<td class='action-button'>\n";
-				echo button::create(['type'=>'button','title'=>$text['button-view'],'icon'=>$_SESSION['theme']['button_icon_view'],'link'=>$list_row_url]);
+				echo button::create(['type'=>'button','title'=>$text['button-view'],'icon'=>$settings->get('theme', 'button_icon_view'),'link'=>$list_row_url]);
 				echo "	</td>\n";
 			}
 			echo "</tr>\n";
 			$x++;
 		}
-		unset($result);
 	}
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br />\n";
 	echo "<div align='center'>".$paging_controls."</div>\n";
 
@@ -224,3 +226,4 @@
 	require_once "resources/footer.php";
 
 ?>
+

@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -71,27 +71,27 @@
 		$condition_field_2 = $_POST["condition_field_2"] ?? null;
 		$condition_expression_2 = $_POST["condition_expression_2"] ?? null;
 		$destination_uuid = $_POST["destination_uuid"];
-	
+
 	 	$action_1 = $_POST["action_1"];
 		//$action_1 = "transfer:1001 XML default";
 		$action_1_array = explode(":", $action_1);
 		$action_application_1 = array_shift($action_1_array);
 		$action_data_1 = join(':', $action_1_array);
-	
+
 	 	$action_2 = $_POST["action_2"] ?? '';
 		//$action_2 = "transfer:1001 XML default";
 		$action_2_array = explode(":", $action_2);
 		$action_application_2 = array_shift($action_2_array);
 		$action_data_2 = join(':', $action_2_array);
-	
+
 		//$action_application_1 = $_POST["action_application_1"];
 		//$action_data_1 = $_POST["action_data_1"];
 		//$action_application_2 = $_POST["action_application_2"];
 		//$action_data_2 = $_POST["action_data_2"];
-	
+
 		$destination_carrier = '';
 		$destination_accountcode = '';
-	
+
 		//use the destination_uuid to set the condition_expression_1
 		if (is_uuid($destination_uuid)) {
 			$sql = "select * from v_destinations ";
@@ -99,7 +99,6 @@
 			$sql .= "and destination_uuid = :destination_uuid ";
 			$parameters['domain_uuid'] = $domain_uuid;
 			$parameters['destination_uuid'] = $destination_uuid;
-			$database = new database;
 			$row = $database->select($sql, $parameters, 'row');
 			if (is_array($row) && @sizeof($row) != 0) {
 				$destination_number = $row["destination_number"];
@@ -110,7 +109,7 @@
 			}
 			unset($sql, $parameters, $row);
 		}
-	
+
 		if (permission_exists("inbound_route_advanced") && $action == "advanced") {
 			//allow users with group advanced control, not always superadmin. You may change this in group permissions
 		}
@@ -122,9 +121,8 @@
 				$condition_expression_1 = '^('.$condition_expression_1.')$';
 			}
 		}
-		$dialplan_enabled = $_POST["dialplan_enabled"] ?? 'false';
+		$dialplan_enabled = $_POST["dialplan_enabled"];
 		$dialplan_description = $_POST["dialplan_description"];
-		if (empty($dialplan_enabled)) { $dialplan_enabled = "true"; } //set default to enabled
 	}
 
 //process the http post data
@@ -145,9 +143,6 @@
 			if (empty($condition_field_1)) { $msg .= "".$text['label-required-condition_field_1']."<br>\n"; }
 			if (empty($condition_expression_1)) { $msg .= "".$text['label-required-condition_expression_1']."<br>\n"; }
 			if (empty($action_application_1)) { $msg .= "".$text['label-required-action_application_1']."<br>\n"; }
-			//if (empty($limit)) { $msg .= "Please provide: Limit<br>\n"; }
-			//if (empty($dialplan_enabled)) { $msg .= "Please provide: Enabled True or False<br>\n"; }
-			//if (empty($dialplan_description)) { $msg .= "Please provide: Description<br>\n"; }
 			if (!empty($msg) && empty($_POST["persistformvar"])) {
 				require_once "resources/header.php";
 				require_once "resources/persist_form_var.php";
@@ -180,7 +175,7 @@
 			$array['dialplans'][$x]['dialplan_name'] = $dialplan_name;
 			$array['dialplans'][$x]['dialplan_number'] = $destination_number;
 			$array['dialplans'][$x]['dialplan_order'] = $public_order;
-			$array['dialplans'][$x]['dialplan_continue'] = 'false';
+			$array['dialplans'][$x]['dialplan_continue'] = false;
 			$array['dialplans'][$x]['dialplan_context'] = 'public';
 			$array['dialplans'][$x]['dialplan_enabled'] = $dialplan_enabled;
 			$array['dialplans'][$x]['dialplan_description'] = $dialplan_description;
@@ -270,7 +265,6 @@
 					$sql .= "and fax_uuid = :fax_uuid ";
 					$parameters['domain_uuid'] = $domain_uuid;
 					$parameters['fax_uuid'] = $fax_uuid;
-					$database = new database;
 					$row = $database->select($sql, $parameters, 'row');
 					if (is_array($row) && @sizeof($row) != 0) {
 						$fax_extension = $row["fax_extension"];
@@ -402,7 +396,7 @@
 		//update the destination dialplan_uuid
 			if (is_uuid($destination_uuid)) {
 
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add('destination_edit', 'temp');
 
 				$array['destinations'][0]['destination_uuid'] = $destination_uuid;
@@ -411,11 +405,8 @@
 			}
 
 		//save the data
-			$database = new database;
-			$database->app_name = 'inbound_routes';
-			$database->app_uuid = $app_uuid;
 			$database->save($array);
-			$message = $database->message;
+			//$message = $database->message;
 			unset($array);
 
 		//remove temp permission, if exists
@@ -486,7 +477,7 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['title-dialplan-inbound-add']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','link'=>PROJECT_PATH.'/app/dialplans/dialplans.php?app_uuid=c03b422e-13a8-bd1b-e42b-b6b9b4d27ce4']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','link'=>PROJECT_PATH.'/app/dialplans/dialplans.php?app_uuid=c03b422e-13a8-bd1b-e42b-b6b9b4d27ce4']);
 	if (permission_exists("inbound_route_advanced")) {
 		if (permission_exists("inbound_route_edit") && $action == "advanced") {
 			echo button::create(['type'=>'button','label'=>$text['button-basic'],'icon'=>'hammer','style'=>'margin-left: 15px;','link'=>'dialplan_inbound_add.php?action=basic']);
@@ -495,7 +486,7 @@
 			echo button::create(['type'=>'button','label'=>$text['button-advanced'],'icon'=>'tools','style'=>'margin-left: 15px;','link'=>'dialplan_inbound_add.php?action=advanced']);
 		}
 	}
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','style'=>'margin-left: 15px;']);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','style'=>'margin-left: 15px;']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
@@ -503,6 +494,7 @@
 	echo $text['description-dialplan-inbound-add']."\n";
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 	echo "<tr>\n";
 	echo "<td width='30%' class='vncellreq' valign='top' align='left' nowrap>\n";
@@ -679,12 +671,11 @@
 		$sql .= "and destination_type = 'inbound' ";
 		$sql .= "order by destination_number asc ";
 		$parameters['domain_uuid'] = $domain_uuid;
-		$database = new database;
 		$result = $database->select($sql, $parameters, 'all');
 		if (is_array($result) && @sizeof($result) != 0) {
 			echo "	<select name='destination_uuid' id='destination_uuid' class='formfld' >\n";
 			echo "	<option></option>\n";
-			foreach ($result as &$row) {
+			foreach ($result as $row) {
 				if (empty($row["dialplan_uuid"])) {
 					echo "		<option value='".escape($row["destination_uuid"])."' style=\"font-weight:bold;\">".escape($row["destination_number"])." ".escape($row["destination_description"])."</option>\n";
 				}
@@ -780,17 +771,16 @@
 	echo "    ".$text['label-enabled']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' style='position: relative;' align='left'>\n";
-	if (substr($_SESSION['theme']['input_toggle_style']['text'], 0, 6) == 'switch') {
-		echo "	<label class='switch'>\n";
-		echo "		<input type='checkbox' id='dialplan_enabled' name='dialplan_enabled' value='true' ".(!empty($dialplan_enabled) && $dialplan_enabled == 'true' ? "checked='checked'" : null).">\n";
-		echo "		<span class='slider'></span>\n";
-		echo "	</label>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<select class='formfld' id='dialplan_enabled' name='dialplan_enabled'>\n";
-		echo "		<option value='true' ".($dialplan_enabled == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-		echo "		<option value='false' ".($dialplan_enabled == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
-		echo "	</select>\n";
+	echo "	<select class='formfld' id='dialplan_enabled' name='dialplan_enabled'>\n";
+	echo "		<option value='true' ".($dialplan_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($dialplan_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "	</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
 	echo "<br />\n";
 	echo "</td>\n";
@@ -807,6 +797,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br><br>";
 
 	if ($action == "update" && permission_exists("inbound_route_edit")) {

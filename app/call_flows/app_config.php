@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "გადართეთ ზარები ორ დანიშნულებას შორის სპეციალური კოდის აკრეფით.";
 		$apps[$x]['description']['nl-nl'] = "Directe oproepen tussen twee bestemmingen via een feature code.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "";
@@ -35,7 +36,7 @@
 		$apps[$x]['destinations'][$y]['label'] = "call_flows";
 		$apps[$x]['destinations'][$y]['name'] = "call_flows";
 		$apps[$x]['destinations'][$y]['sql'] = "select call_flow_name as name, call_flow_uuid, call_flow_uuid as uuid, call_flow_extension as destination, call_flow_extension as extension, call_flow_context as context from v_call_flows ";
-		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and call_flow_enabled = 'true' ";
+		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and call_flow_enabled = true ";
 		$apps[$x]['destinations'][$y]['order_by'] = "natural_sort(call_flow_extension) asc";
 		$apps[$x]['destinations'][$y]['field']['call_flow_uuid'] = "call_flow_uuid";
 		$apps[$x]['destinations'][$y]['field']['name'] = "call_flow_name";
@@ -50,7 +51,7 @@
 		$apps[$x]['destinations'][$y]['label'] = "call_flows";
 		$apps[$x]['destinations'][$y]['name'] = "call_flows";
 		$apps[$x]['destinations'][$y]['sql'] = "select call_flow_name as name, call_flow_uuid, call_flow_uuid as uuid, call_flow_feature_code as extension, call_flow_feature_code as destination, call_flow_context as context from v_call_flows ";
-		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and call_flow_feature_code is not null and call_flow_enabled = 'true' ";
+		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and call_flow_feature_code is not null and call_flow_enabled = true ";
 		$apps[$x]['destinations'][$y]['order_by'] = "natural_sort(call_flow_feature_code) asc";
 		$apps[$x]['destinations'][$y]['field']['uuid'] = "uuid";
 		$apps[$x]['destinations'][$y]['field']['name'] = "name";
@@ -90,6 +91,16 @@
 		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		$apps[$x]['permissions'][$y]['groups'][] = "admin";
 		$y++;
+
+	//default settings
+		$y++;
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = "425b6aed-5039-490a-ba31-e49aa57b5902";
+		$apps[$x]['default_settings'][$y]['default_setting_category'] = "call_flow";
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "extension_range";
+		$apps[$x]['default_settings'][$y]['default_setting_name'] = "text";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "30-39";
+		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "false";
+		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Set the suggested extension range(s) for call flows";
 
 	//cache details
 		$apps[$x]['cache']['key'] = "dialplan.\${call_flow_context}";
@@ -189,7 +200,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enter the alernate application data.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "call_flow_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['search'] = 'true';
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Select whether to enable or disable the call flow";
 		$z++;

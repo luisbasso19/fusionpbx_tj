@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "მართეთ პარამეტრები SIP პროფილებისთვის.";
 		$apps[$x]['description']['nl-nl'] = "Beheer instellingen voor de SIP profielen.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "";
@@ -94,7 +95,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['search'] = 'true';
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "sip_profile_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "sip_profile_description";
@@ -207,7 +208,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enter the value.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "sip_profile_setting_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Choose to enable or disable this.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "sip_profile_setting_description";

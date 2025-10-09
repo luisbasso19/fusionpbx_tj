@@ -1,14 +1,14 @@
 <?php
 
 /**
- * plugin_ldap 
+ * plugin_ldap
  *
  * @method ldap checks a local or remote ldap database to authenticate the user
  */
 class plugin_ldap {
 
 	/**
-	 * Define variables and their scope
+	 * Declare public variables
 	 */
 	public $debug;
 	public $domain_name;
@@ -16,6 +16,16 @@ class plugin_ldap {
 	public $password;
 	public $user_uuid;
 	public $contact_uuid;
+
+	/**
+	 * Called when the object is created
+	 */
+	public function __construct() {
+		//connect to the database
+		if (empty($this->database)) {
+			$this->database = database::new();
+		}
+	}
 
 	/**
 	 * ldap checks a local or remote ldap database to authenticate the user
@@ -33,13 +43,11 @@ class plugin_ldap {
 					$settings['theme']['logo'] = !empty($_SESSION['theme']['logo']['text']) ? $_SESSION['theme']['logo']['text'] : PROJECT_PATH.'/themes/default/images/logo_login.png';
 					$settings['theme']['login_logo_width'] = !empty($_SESSION['theme']['login_logo_width']['text']) ? $_SESSION['theme']['login_logo_width']['text'] : 'auto; max-width: 300px';
 					$settings['theme']['login_logo_height'] = !empty($_SESSION['theme']['login_logo_height']['text']) ? $_SESSION['theme']['login_logo_height']['text'] : 'auto; max-height: 300px';
+					$settings['theme']['background_video'] = isset($_SESSION['theme']['background_video'][0]) ? $_SESSION['theme']['background_video'][0] : null;
 
 				//get the domain
 					$domain_array = explode(":", $_SERVER["HTTP_HOST"]);
 					$domain_name = $domain_array[0];
-
-				//temp directory
-					$_SESSION['server']['temp']['dir'] = '/tmp';
 
 				//create token
 					//$object = new token;
@@ -53,7 +61,7 @@ class plugin_ldap {
 					$view = new template();
 					$view->engine = 'smarty';
 					$view->template_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/core/authentication/resources/views/';
-					$view->cache_dir = $_SESSION['server']['temp']['dir'];
+					$view->cache_dir = sys_get_temp_dir();
 					$view->init();
 
 				//add translations
@@ -69,6 +77,7 @@ class plugin_ldap {
 					$view->assign("login_logo_width", $settings['theme']['login_logo_width']);
 					$view->assign("login_logo_height", $settings['theme']['login_logo_height']);
 					$view->assign("login_logo_source", $settings['theme']['logo']);
+					$view->assign("background_video", $settings['theme']['background_video']);
 
 				//add the token name and hash to the view
 					//$view->assign("token_name", $token['name']);
@@ -133,8 +142,7 @@ class plugin_ldap {
 				}
 				$sql .= "and (user_type = 'default' or user_type is null) ";
 				$parameters['username'] = $this->username;
-				$database = new database;
-				$row = $database->select($sql, $parameters, 'row');
+				$row = $this->database->select($sql, $parameters, 'row');
 				if (is_array($row) && @sizeof($row) != 0) {
 					if ($settings['users']['unique'] == "global" && $row["domain_uuid"] != $this->domain_uuid) {
 						//get the domain uuid
@@ -170,7 +178,7 @@ class plugin_ldap {
 						$array['users'][0]['salt'] = $salt;
 						$array['users'][0]['add_date'] = now();
 						$array['users'][0]['add_user'] = strtolower($this->username);
-						$array['users'][0]['user_enabled'] = 'true';
+						$array['users'][0]['user_enabled'] = true;
 
 					//build user group insert array
 						$array['user_groups'][0]['user_group_uuid'] = uuid();
@@ -179,15 +187,12 @@ class plugin_ldap {
 						$array['user_groups'][0]['user_uuid'] = $this->user_uuid;
 
 					//grant temporary permissions
-						$p = new permissions;
+						$p = permissions::new();
 						$p->add('user_add', 'temp');
 						$p->add('user_group_add', 'temp');
 
 					//execute insert
-						$database = new database;
-						$database->app_name = 'authentication';
-						$database->app_uuid = 'a8a12918-69a4-4ece-a1ae-3932be0e41f1';
-						$database->save($array);
+						$this->database->save($array);
 						unset($array);
 
 					//revoke temporary permissions
@@ -210,5 +215,3 @@ class plugin_ldap {
 			return $result;
 	}
 }
-
-?>

@@ -175,9 +175,8 @@
 						$sql = "select outbound_caller_id_name, outbound_caller_id_number from v_extensions where domain_uuid = :domain_uuid and extension = :src ";
 						$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 						$parameters['src'] = $src;
-						$database = new database;
 						$result = $database->select($sql, $parameters, 'all');
-						foreach ($result as &$row) {
+						foreach ($result as $row) {
 							$dest_cid_name = $row["outbound_caller_id_name"];
 							$dest_cid_number = $row["outbound_caller_id_number"];
 							break; //limit to 1 row

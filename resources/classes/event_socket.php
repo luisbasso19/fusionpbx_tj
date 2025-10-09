@@ -144,8 +144,11 @@ class event_socket {
 		$port = $port ?? $conf['switch.event_socket.port'] ?? $conf['event_socket.port'] ?? '8021';
 		$password = $password ?? $conf['switch.event_socket.password'] ?? $conf['event_socket.password'] ?? 'ClueCon';
 
-		//open the socket connection
-		$this->fp = @fsockopen($host, $port, $errno, $errdesc, 3);
+		//if a socket was provided in the constructor then don't create a new one
+		if ($this->fp === false) {
+			//open the socket connection
+			$this->fp = @fsockopen($host, $port, $errno, $errdesc, 3);
+		}
 
 		if (!$this->connected()) {
 			return false;
@@ -216,7 +219,7 @@ class event_socket {
 		}
 
 		$cmd_array = explode("\n", $cmd);
-		foreach ($cmd_array as &$value) {
+		foreach ($cmd_array as $value) {
 			fputs($this->fp, $value."\n");
 		}
 		fputs($this->fp, "\n"); //second line feed to end the headers

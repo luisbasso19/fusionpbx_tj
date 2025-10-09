@@ -27,20 +27,36 @@
 /**
  * Define the operator_panel class
  */
-if (!class_exists('basic_operator_panel')) {
 	class basic_operator_panel {
 
 		/**
-		 * Define the variables
+		 * declare constant variables
+		 */
+		const app_name = 'basic_operator_panel';
+		const app_uuid = 'dd3d173a-5d51-4231-ab22-b18c5b712bb2';
+
+		/**
+		 * declare public variables
 		 */
 		public $domain_uuid;
+
+		/**
+		 * declare private variables
+		 */
+		private $database;
 
 		/**
 		 * Called when the object is created
 		 */
 		public function __construct() {
+			//assign public variables
 			if (!isset($this->domain_uuid)) {
 				$this->domain_uuid = $_SESSION['domain_uuid'];
+			}
+
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
 			}
 		}
 
@@ -72,12 +88,11 @@ if (!class_exists('basic_operator_panel')) {
 				$sql .= "order by ";
 				$sql .= "e.extension asc ";
 				$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-				$database = new database;
-				$extensions = $database->select($sql, $parameters);
+				$extensions = $this->database->select($sql, $parameters);
 
 			//store extension status by user uuid
 				if (isset($extensions)) {
-					foreach($extensions as &$row) {
+					foreach ($extensions as $row) {
 						if ($row['user_uuid'] != '') {
 							$ext_user_status[$row['user_uuid']] = $row['user_status'];
 							unset($row['user_status']);
@@ -97,7 +112,7 @@ if (!class_exists('basic_operator_panel')) {
 			//build the response
 				$x = 0;
 				if (isset($extensions)) {
-					foreach($extensions as &$row) {
+					foreach ($extensions as $row) {
 						$user = $row['extension'];
 						if (!empty($row['number_alias'])) {
 							$user = $row['number_alias'];
@@ -143,7 +158,7 @@ if (!class_exists('basic_operator_panel')) {
 						//add the active call details
 							$found = false;
 							if (isset($json_array['rows'])) {
-								foreach($json_array['rows'] as &$field) {
+								foreach ($json_array['rows'] as $field) {
 									$presence_id = $field['presence_id'];
 									$presence = explode("@", $presence_id);
 									$presence_id = $presence[0];
@@ -245,6 +260,3 @@ if (!class_exists('basic_operator_panel')) {
 				return $result;
 		}
 	}
-}
-
-?>

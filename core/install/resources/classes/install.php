@@ -1,13 +1,16 @@
 <?php
 
-if (!class_exists('install')) {
 	class install {
 
 		/**
-		* declare the variables
-		*/
-		private $app_name;
-		private $app_uuid;
+		 * declare constant variables
+		 */
+		const app_name = 'install';
+		const app_uuid = '75507e6e-891e-11e5-af63-feff819cdc9f';
+
+		/**
+		 * declare public variables
+		 */
 		public $message;
 		public $database_host;
 		public $database_port;
@@ -19,9 +22,7 @@ if (!class_exists('install')) {
 		 * called when the object is created
 		 */
 		public function __construct() {
-			//assign the variables
-			$this->app_name = 'install';
-			$this->app_uuid = '75507e6e-891e-11e5-af63-feff819cdc9f';
+
 		}
 
 		/**
@@ -35,7 +36,10 @@ if (!class_exists('install')) {
 			//set the default config file location
 			$os = strtoupper(substr(PHP_OS, 0, 3));
 			switch ($os) {
-			case "BSD":
+				case "FRE":
+				case "OPE":
+				case "NET":
+				case "BSD":
 				$config_path = '/usr/local/etc/fusionpbx';
 				$config_file = $config_path.'/config.conf';
 				$document_root = '/usr/local/www/fusionpbx';
@@ -124,6 +128,11 @@ if (!class_exists('install')) {
 			$conf .= "php.dir = ".$php_dir."\n";
 			$conf .= "php.bin = php\n";
 			$conf .= "\n";
+			$conf .= "#session settings\n";
+			$conf .= "session.cookie_httponly = true\n";
+			$conf .= "session.cookie_secure = true\n";
+			$conf .= "session.cookie_samesite = Lax\n";
+			$conf .= "\n";
 			$conf .= "#cache settings\n";
 			$conf .= "cache.method = file\n";
 			$conf .= "cache.location = ".$cache_location."\n";
@@ -151,7 +160,7 @@ if (!class_exists('install')) {
 			if(!$file_handle) { return; }
 			fwrite($file_handle, $conf);
 			fclose($file_handle);
-			
+
 			//if the config.conf file was saved return true
 			if (file_exists($config_file)) {
 				return true;
@@ -163,6 +172,3 @@ if (!class_exists('install')) {
 		}
 
 	}
-}
-
-?>

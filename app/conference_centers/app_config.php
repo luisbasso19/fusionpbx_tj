@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "Centre de Conférences permet une ou plus conferences audio ou vidéo.";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "კონფერენციის ცენტრები საშუალებას გაძლევთ, ერთი ან მეტი აუდიო ან ვიდეო კონფერენციის ოთახები გქონდეთ.";
 		$apps[$x]['description']['nl-nl'] = "Conferentie centra maakt instellen van een of meer audio en video conferenties mogelijk.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "O centro de conferências permite gerir uma ou mais salas de conferência de audio e vídeo.";
@@ -217,6 +218,14 @@
 		$apps[$x]['default_settings'][$y]['default_setting_value'] = "false";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Request the account ID.";
+		$y++;
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = "d93351de-8446-47ee-acdb-05cf340b8803";
+		$apps[$x]['default_settings'][$y]['default_setting_category'] = "conference_center";
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "extension_range";
+		$apps[$x]['default_settings'][$y]['default_setting_name'] = "text";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "200-299";
+		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "false";
+		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Set the suggested extension range(s) for conference centers";
 
 	//cache details
 		$apps[$x]['cache']['key'] = "dialplan.\${domain_name}";
@@ -274,7 +283,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enter the center description.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "conference_center_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enable or disable the conference center.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "insert_date";
@@ -338,7 +347,7 @@
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name']['text'] = "record";
 		$apps[$x]['db'][$y]['fields'][$z]['name']['deprecated'] = "recording";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Select whether to record the conference.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "moderator_pin";
@@ -362,31 +371,31 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Close the conference room at the stop time.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "wait_mod";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Wait for the moderator to join before starting the conference.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "moderator_endconf";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "When moderator exits end conference.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "announce_name";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Introduce participants as they enter the conference.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "announce_count";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Announce number of participants when entering the conference.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "announce_recording";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Announce to participants that conference is being recorded.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "sounds";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Play sound when someone enters or exists the conference.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "mute";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Mute participants on entering the conference.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "created";
@@ -408,7 +417,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Optional account code for the conference.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Select to enable or disable the session.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "description";

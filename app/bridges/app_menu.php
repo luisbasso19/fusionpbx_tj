@@ -13,13 +13,14 @@
 	$apps[$x]['menu'][$y]['title']['fr-ca'] = "Ponts";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "גשרים";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Ponti";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "ხიდები";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Bridges";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Mostkowania";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "pontes";
 	$apps[$x]['menu'][$y]['title']['pt-pt'] = "pontes";
 	$apps[$x]['menu'][$y]['title']['ro-ro'] = "Poduri";
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Мосты";
-	$apps[$x]['menu'][$y]['title']['sv-se'] = "Broar";
+	$apps[$x]['menu'][$y]['title']['sv-se'] = "Bryggor";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Міста";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "桥梁";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "ブリッジ";

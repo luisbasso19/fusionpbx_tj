@@ -51,7 +51,6 @@
 		$sql .= "where domain_uuid = :domain_uuid ";
 		$sql .= "order by queue_name asc ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-		$database = new database;
 		$_SESSION['queues'] = $database->select($sql, $parameters, 'all');
 	}
 
@@ -148,11 +147,11 @@
 					$sql .= "where domain_uuid = :domain_uuid ";
 					$sql .= "order by agent_name asc ";
 					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-					$database = new database;
 					$_SESSION['agents'] = $database->select($sql, $parameters, 'all');
 				}
 
 			//list the agents
+				echo "<div class='card'>\n";
 				echo "<table class='list'>\n";
 				echo "<tr class='list-header'>\n";
 				echo "<th>".$text['label-name']."</th>\n";
@@ -219,9 +218,18 @@
 									$talk_time = $agent_row['talk_time'];
 									$ready_time = $agent_row['ready_time'];
 
+									//calcudate the length since status change and bridge end			
+									$last_status_change_length = time() - $last_status_change;
+									$last_bridge_end_length = time() - $last_bridge_end;
+
+									//set the state to wrap up time
+									if ($last_bridge_end_length < $wrap_up_time) {
+										$state = 'Wrap Up Time';
+									}
+
 									//format the seconds to hh:mm:ss
-									$last_status_change_length = format_seconds(time() - $last_status_change);
-									$last_bridge_end_length = format_seconds(time() - $last_bridge_end);
+									$last_status_change_length_formatted = format_seconds($last_status_change_length);
+									$last_bridge_end_length_formatted = format_seconds($last_bridge_end_length);
 
 									if (permission_exists('call_center_agent_edit')) {
 										$list_row_url = "../call_centers/call_center_agent_edit.php?id=".$agent_uuid;
@@ -239,8 +247,8 @@
 									echo "<td>".escape($agent_extension)."</td>\n";
 									echo "<td>".escape($status)."</td>\n";
 									echo "<td>".escape($state)."</td>\n";
-									echo "<td>".escape($last_status_change_length)."</td>\n";
-									echo "<td>".escape($last_bridge_end_length)."</td>\n";
+									echo "<td>".escape($last_status_change_length_formatted)."</td>\n";
+									echo "<td>".escape($last_bridge_end_length_formatted)."</td>\n";
 									echo "<td class='center'>".escape($no_answer_count)."</td>\n";
 									echo "<td class='center'>".escape($calls_answered)."</td>\n";
 									echo "<td>".escape($tier_state)."</td>\n";
@@ -269,6 +277,7 @@
 					} //foreach
 				} //if
 				echo "</table>\n\n";
+				echo "</div>\n";
 
 		//add vertical spacing
 			echo "<br /><br /><br />";
@@ -309,6 +318,7 @@
 				echo $text['description-queue']."\n";
 				echo "<br /><br />\n";
 
+			echo "<div class='card'>\n";
 			echo "<table class='list'>\n";
 			echo "<tr class='list-header'>\n";
 			echo "<th>".$text['label-time']."</th>\n";
@@ -381,6 +391,7 @@
 				}
 			}
 			echo "</table>\n";
+			echo "</div>\n";
 
 	}
 

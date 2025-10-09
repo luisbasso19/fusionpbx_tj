@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2021
+	Portions created by the Initial Developer are Copyright (C) 2021-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -68,7 +68,6 @@
 			$parameters['fax_uuid'] = $fax_uuid;
 			$parameters['user_uuid'] = $_SESSION['user_uuid'];
 		}
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (is_array($row) && @sizeof($row) != 0) {
 			//set database fields as variables
@@ -90,7 +89,6 @@
 	$sql .= "and fax_mode = 'tx' ";
 	$parameters['fax_uuid'] = $_REQUEST["id"];
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	$database = new database;
 	$fax_files = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
@@ -125,13 +123,14 @@
 	echo "	<input type='hidden' name='search' value=\"".escape($search)."\">\n";
 	//echo "	<input type='hidden' id='my_id' name='my_id' value='' />";
 
-	echo "	<table class='list'>\n";
-	echo "		<tr class='list-header'>\n";
-	echo "			<th>Destination</th>";
-	echo "			<th>Status</th>";
-	echo "			<th>Preview</th>";
-	echo "			<th>Path</th>";
-	echo "		</tr>\n";
+	echo "	<div class='card'>\n";
+	echo "		<table class='list'>\n";
+	echo "			<tr class='list-header'>\n";
+	echo "				<th>Destination</th>";
+	echo "				<th>Status</th>";
+	echo "				<th>Preview</th>";
+	echo "				<th>Path</th>";
+	echo "			</tr>\n";
 
 //loop through the faxes
 	if (isset($results["rows"])) {
@@ -157,7 +156,8 @@
 			}
 		}
 	}
-	echo "	</table>\n";
+	echo "		</table>\n";
+	echo "	</div>\n";
 	echo "	<br />\n";
 	echo "	<input type='hidden' name='".$token['name']."' value='".$token['hash']."'>\n";
 	echo "</form>\n";

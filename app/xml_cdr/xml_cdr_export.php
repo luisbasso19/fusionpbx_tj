@@ -42,7 +42,7 @@
 	$text = $language->get();
 
 //additional includes
-	$rows_per_page = ($_SESSION['domain']['paging']['numeric'] != '') ? $_SESSION['domain']['paging']['numeric'] : 50;
+	$rows_per_page = $settings->get('domain', 'paging', 50);
 	$archive_request = isset($_POST['archive_request']) && $_POST['archive_request'] == 'true' ? true : false;
 	require_once "xml_cdr_inc.php";
 
@@ -418,6 +418,12 @@
 		if ($p >= 55) {
 			$pdf->AddPage('L', array($page_width, $page_height));
 		}
+
+		//clear the output buffer
+		if (ob_get_level()) {
+		    ob_end_clean();
+		}
+
 		//output remaining data
 		$data_body_chunk = $data_start.$data_head;
 		foreach ($data_body as $data_body_row) {

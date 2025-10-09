@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "Equipements pour provisioning.";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "მოწყობილობები სამუშაოდ მოსამზადებლად(for provisioning).";
 		$apps[$x]['description']['nl-nl'] = "Voorzieningen voor toestellen.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "Provisionamento de telefones IP.";
@@ -53,7 +54,7 @@
 		$apps[$x]['permissions'][$y]['groups'][] = "admin";
 		$y++;
 		$apps[$x]['permissions'][$y]['name'] = "device_address_uuid";
-		//$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
+		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		//$apps[$x]['permissions'][$y]['groups'][] = "admin";
 		$y++;
 		$apps[$x]['permissions'][$y]['name'] = "device_label";
@@ -222,6 +223,9 @@
 		$apps[$x]['permissions'][$y]['name'] = "device_location";
 		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		$apps[$x]['permissions'][$y]['groups'][] = "admin";
+		$y++;
+		$apps[$x]['permissions'][$y]['name'] = "device_serial_number";
+		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		$y++;
 		$apps[$x]['permissions'][$y]['name'] = "device_model";
 		//$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
@@ -461,6 +465,11 @@
 		$apps[$x]['db'][$y]['fields'][$z]['search'] = 'true';
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
+		$apps[$x]['db'][$y]['fields'][$z]['name'] = "device_serial_number";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['search'] = 'true';
+		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
+		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name']['text'] = "device_model";
 		$apps[$x]['db'][$y]['fields'][$z]['name']['deprecated'] = "phone_model";
 		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
@@ -473,7 +482,7 @@
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name']['text'] = "device_enabled";
 		$apps[$x]['db'][$y]['fields'][$z]['name']['deprecated'] = "device_provision_enable";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "device_enabled_date";
@@ -481,6 +490,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['type']['sqlite'] = "date";
 		$apps[$x]['db'][$y]['fields'][$z]['type']['mysql'] = "timestamp";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
+		$apps[$x]['db'][$y]['fields'][$z]['deprecated'] = "true";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name']['text'] = "device_template";
 		$apps[$x]['db'][$y]['fields'][$z]['name']['deprecated'] = "phone_template";
@@ -660,7 +670,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "insert_date";
@@ -733,7 +743,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "device_setting_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "device_setting_description";
@@ -902,7 +912,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "device_profile_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "device_profile_description";
@@ -993,7 +1003,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = 'Enter the device key extension.';
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = 'profile_key_protected';
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = 'text';
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = 'boolean';
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = 'Enter the device key protected.';
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = 'profile_key_label';
@@ -1063,7 +1073,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = 'Enter the profile setting value.';
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = 'profile_setting_enabled';
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = 'text';
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = 'boolean';
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = 'Enter the profile setting enabled.';
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = 'profile_setting_description';
@@ -1109,7 +1119,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enter the name.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Set the status of the vendor.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "description";
@@ -1179,7 +1189,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enter the value.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['search'] = 'true';
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Set the status of the function.";
 		$z++;
@@ -1869,7 +1879,7 @@
 		$vendors[$y]['functions'][$z]['subtype'] = "";
 		$vendors[$y]['functions'][$z]['value'] = "blf";
 		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
-		$vendors[$y]['functions'][$z]['groups'][] = "admin"; 
+		$vendors[$y]['functions'][$z]['groups'][] = "admin";
 		$z++;
 		$vendors[$y]['functions'][$z]['uuid'] = "b531c295-6b8f-4c50-a1a2-63aefbaf91ae";
 		$vendors[$y]['functions'][$z]['label'] = "label-line";
@@ -1949,6 +1959,69 @@
 		$vendors[$y]['uuid'] = "cac9a0e3-a7d4-426a-bd6d-a14f7d6a6350";
 		$vendors[$y]['name'] = "poly";
 		$z=0;
+		$vendors[$y]['functions'][$z]['uuid'] = "2a64bbc5-3b45-49ae-90cf-7a79fcb517c9";
+		$vendors[$y]['functions'][$z]['label'] = "label-line";
+		$vendors[$y]['functions'][$z]['type'] = "line";
+		$vendors[$y]['functions'][$z]['subtype'] = "";
+		$vendors[$y]['functions'][$z]['value'] = "line";
+		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
+		$vendors[$y]['functions'][$z]['groups'][] = "admin";
+		$z++;
+		$vendors[$y]['functions'][$z]['uuid'] = "ee9ef23b-5c0b-46af-a20c-ed4a92bbe526";
+		$vendors[$y]['functions'][$z]['label'] = "label-automata";
+		$vendors[$y]['functions'][$z]['type'] = "automata";
+		$vendors[$y]['functions'][$z]['subtype'] = "";
+		$vendors[$y]['functions'][$z]['value'] = "automata";
+		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
+		$vendors[$y]['functions'][$z]['groups'][] = "admin";
+		$z++;
+		$vendors[$y]['functions'][$z]['uuid'] = "5c0c09eb-ba26-400b-9cad-da5939df9788";
+		$vendors[$y]['functions'][$z]['label'] = "label-normal";
+		$vendors[$y]['functions'][$z]['type'] = "normal";
+		$vendors[$y]['functions'][$z]['subtype'] = "";
+		$vendors[$y]['functions'][$z]['value'] = "normal";
+		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
+		$vendors[$y]['functions'][$z]['groups'][] = "admin";
+		$z++;
+		$vendors[$y]['functions'][$z]['uuid'] = "34f49423-2ad6-4854-b5b6-39329781b51a";
+		$vendors[$y]['functions'][$z]['label'] = "label-messages";
+		$vendors[$y]['functions'][$z]['type'] = "messages";
+		$vendors[$y]['functions'][$z]['subtype'] = "";
+		$vendors[$y]['functions'][$z]['value'] = "Messages";
+		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
+		$vendors[$y]['functions'][$z]['groups'][] = "admin";
+		$z++;
+		$vendors[$y]['functions'][$z]['uuid'] = "58a2ef99-736e-4c14-9581-7ff7d8af1556";
+		$vendors[$y]['functions'][$z]['label'] = "label-micmute";
+		$vendors[$y]['functions'][$z]['type'] = "micmute";
+		$vendors[$y]['functions'][$z]['subtype'] = "";
+		$vendors[$y]['functions'][$z]['value'] = "MicMute";
+		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
+		$vendors[$y]['functions'][$z]['groups'][] = "admin";
+		$z++;
+		$vendors[$y]['functions'][$z]['uuid'] = "35c0dd1a-b567-4529-abfc-ce96c72785e6";
+		$vendors[$y]['functions'][$z]['label'] = "label-redial";
+		$vendors[$y]['functions'][$z]['type'] = "redial";
+		$vendors[$y]['functions'][$z]['subtype'] = "";
+		$vendors[$y]['functions'][$z]['value'] = "Redial";
+		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
+		$vendors[$y]['functions'][$z]['groups'][] = "admin";
+		$z++;
+		$vendors[$y]['functions'][$z]['uuid'] = "411e38d6-a147-4167-b581-221a4fe1a18c";
+		$vendors[$y]['functions'][$z]['label'] = "label-null";
+		$vendors[$y]['functions'][$z]['type'] = "null";
+		$vendors[$y]['functions'][$z]['subtype'] = "";
+		$vendors[$y]['functions'][$z]['value'] = "Null";
+		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
+		$vendors[$y]['functions'][$z]['groups'][] = "admin";
+		$z++;
+		$vendors[$y]['functions'][$z]['uuid'] = "a9639bfe-ac0d-48f0-92c0-f4e949d3b01f";
+		$vendors[$y]['functions'][$z]['label'] = "label-url";
+		$vendors[$y]['functions'][$z]['type'] = "url";
+		$vendors[$y]['functions'][$z]['subtype'] = "";
+		$vendors[$y]['functions'][$z]['value'] = "URL";
+		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
+		$vendors[$y]['functions'][$z]['groups'][] = "admin";
 
 	//polycom details
 		$y++;
@@ -4301,6 +4374,12 @@
 		$vendors[$y]['functions'][$z]['groups'][] = "superadmin";
 		$vendors[$y]['functions'][$z]['groups'][] = "admin";
 
+	//bittel details
+		$y++;
+		$vendors[$y]['uuid'] = "a2eeb8e0-c30d-4f21-b3eb-7b2ac3b3e84d";
+		$vendors[$y]['name'] = "bittel";
+		$z=0;
+
 	//linphone details
 		$y++;
 		$vendors[$y]['uuid'] = "782bc1cc-149f-406f-b8e2-24a2bc484fad";
@@ -4311,6 +4390,18 @@
 		$y++;
 		$vendors[$y]['uuid'] = "d3e71b2e-f272-4455-ae46-6ac94bdd75cc";
 		$vendors[$y]['name'] = "sipnetic";
+		$z=0;
+
+	//acrobits details
+		$y++;
+		$vendors[$y]['uuid'] = "9c616373-99fb-4f7d-8713-d5b1da9aaef3";
+		$vendors[$y]['name'] = "acrobits";
+		$z=0;
+
+	//groundwire details
+		$y++;
+		$vendors[$y]['uuid'] = "c0a455ea-756e-48eb-991c-fb144770a059";
+		$vendors[$y]['name'] = "groundwire";
 		$z=0;
 
 ?>

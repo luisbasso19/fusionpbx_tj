@@ -42,6 +42,11 @@
 	$language = new text;
 	$text = $language->get();
 
+//get order and order by, page
+	$order_by = preg_replace('#[^a-zA-Z0-9_\-]#', '', ($_REQUEST["order_by"] ?? 'extension'));
+	$order = $_REQUEST["order"] ?? 'asc';
+	$page = isset($_REQUEST['page']) && is_numeric($_REQUEST['page']) ? $_REQUEST['page'] : 0;
+
 //set the http get/post variable(s) to a php variable
 	if (is_uuid($_REQUEST["id"]) && $_REQUEST["ext"] != '') {
 		$extension_uuid = $_REQUEST["id"];
@@ -56,7 +61,7 @@
 	$extension = new extension;
 	if ($extension->exists($_SESSION['domain_uuid'], $extension_new)) {
 		message::add($text['message-duplicate'], 'negative');
-		header("Location: extensions.php".(is_numeric($page) ? '?page='.$page : null));
+		header("Location: extensions.php?".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(is_numeric($page) ? '&page='.$page : null));
 		exit;
 	}
 
@@ -66,7 +71,6 @@
 	$sql .= "and extension_uuid = :extension_uuid ";
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	$parameters['extension_uuid'] = $extension_uuid;
-	$database = new database;
 	$row = $database->select($sql, $parameters, 'row');
 	if (is_array($row) && @sizeof($row) != 0) {
 		$extension = $row["extension"];
@@ -140,9 +144,7 @@
 	$array['extensions'][0]['extension_type'] = $extension_type;
 	$array['extensions'][0]['enabled'] = $enabled;
 	$array['extensions'][0]['description'] = $description;
-	$database = new database;
 	$database->save($array);
-	$message = $database->message;
 	unset($array);
 
 //get the source extension voicemail data
@@ -154,7 +156,6 @@
 			$sql .= "and voicemail_id = :voicemail_id ";
 			$parameters['voicemail_id'] = is_numeric($number_alias) ? $number_alias : $extension;
 			$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-			$database = new database;
 			$row = $database->select($sql, $parameters, 'row');
 			if (is_array($row) && @sizeof($row) != 0) {
 				$voicemail_mailto = $row["voicemail_mail_to"];
@@ -187,7 +188,6 @@
 
 //synchronize configuration
 	if (is_writable($_SESSION['switch']['extensions']['dir'])) {
-		require_once "app/extensions/resources/classes/extension.php";
 		$ext = new extension;
 		$ext->xml();
 		unset($ext);
@@ -195,7 +195,7 @@
 
 //redirect the user
 	message::add($text['message-copy']);
-	header("Location: extensions.php".(is_numeric($page) ? '?page='.$page : null));
+	header("Location: extensions.php?".(!empty($order_by) ? '&order_by='.$order_by.'&order='.$order : null).(is_numeric($page) ? '&page='.$page : null));
 	exit;
 
 ?>

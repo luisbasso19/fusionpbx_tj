@@ -13,13 +13,14 @@
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Centre d'Appel Actif";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "מרכז קריאה פעיל";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Call Center Attivi";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "აქტიური ქოლცენტრები";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Aktieve Callcenter";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Aktywność w Call Center ";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Call Center ativos";
 	$apps[$x]['menu'][$y]['title']['pt-pt'] = "Centro de Chamadas Activo";
 	$apps[$x]['menu'][$y]['title']['ro-ro'] = "Centru de apeluri activ";
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Активные Колл-центры";
-	$apps[$x]['menu'][$y]['title']['sv-se'] = "Aktivt Call Center";
+	$apps[$x]['menu'][$y]['title']['sv-se'] = "Aktivt callcenter";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Центр активного виклику";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "主动呼叫中心";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "アクティブコールセンター";

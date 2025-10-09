@@ -114,7 +114,7 @@
 							sql = sql .. "AND p.phrase_uuid = :macro_name ";
 							sql = sql .. "AND p.phrase_language = :language ";
 							sql = sql .. "AND p.phrase_uuid = d.phrase_uuid ";
-							sql = sql .. "AND p.phrase_enabled = 'true' ";
+							sql = sql .. "AND p.phrase_enabled = true ";
 							sql = sql .. "ORDER BY d.domain_uuid, p.phrase_uuid, d.phrase_detail_order ASC ";
 							local params = {domain_uuid = domain_uuid, macro_name = macro_name, language = language};
 							if (debug["sql"]) then
@@ -129,6 +129,10 @@
 								--phrase_detail_group,phrase_detail_tag,phrase_detail_pattern
 								--phrase_detail_function,phrase_detail_data,phrase_detail_method
 								--phrase_detail_type,phrase_detail_order
+
+								phrase_detail_data = xml.sanitize(row.phrase_detail_data);
+								phrase_detail_data = string.gsub(phrase_detail_data, "{lua streamfile", "${lua streamfile");
+
 								if (previous_phrase_uuid ~= row.phrase_uuid) then
 									if (x > 0) then
 										xml:append([[							</match>]]);
@@ -140,7 +144,7 @@
 									xml:append([[							<match>]]);
 									match_open_tag = true
 								end
-								xml:append([[								<action function="]] .. xml.sanitize(row.phrase_detail_function) .. [[" data="]] .. xml.sanitize(row.phrase_detail_data) .. [["/>]]);
+								xml:append([[								<action function="]] .. xml.sanitize(row.phrase_detail_function) .. [[" data="]] .. phrase_detail_data .. [["/>]]);
 								previous_phrase_uuid = row.phrase_uuid;
 								x = x + 1;
 							end);

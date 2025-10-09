@@ -25,14 +25,19 @@
 */
 
 //define the voicemail greetings class
-if (!class_exists('voicemail_greetings')) {
 	class voicemail_greetings {
+
+		/**
+		 * declare constant variables
+		 */
+		const app_name = 'voicemail_greetings';
+		const app_uuid = 'e4b4fbee-9e4d-8e46-3810-91ba663db0c2';
 
 		/**
 		 * declare private variables
 		 */
-		private $app_name;
-		private $app_uuid;
+
+		private $database;
 		private $permission_prefix;
 		private $list_page;
 		private $table;
@@ -49,17 +54,20 @@ if (!class_exists('voicemail_greetings')) {
 		public function __construct() {
 
 			//assign private variables
-				$this->app_name = 'voicemail_greetings';
-				$this->app_uuid = 'e4b4fbee-9e4d-8e46-3810-91ba663db0c2';
-				$this->permission_prefix = 'voicemail_greeting_';
-				if (is_numeric($this->voicemail_id)) {
-					$this->list_page = 'voicemail_greetings.php?id='.urlencode($this->voicemail_id).'&back='.urlencode(PROJECT_PATH.'/app/voicemail/voicemails.php');
-				}
-				else {
-					$this->list_page = PROJECT_PATH.'/app/voicemails/voicemails.php';
-				}
-				$this->table = 'voicemail_greetings';
-				$this->uuid_prefix = 'voicemail_greeting_';
+			$this->permission_prefix = 'voicemail_greeting_';
+			if (is_numeric($this->voicemail_id)) {
+				$this->list_page = 'voicemail_greetings.php?id='.urlencode($this->voicemail_id).'&back='.urlencode(PROJECT_PATH.'/app/voicemail/voicemails.php');
+			}
+			else {
+				$this->list_page = PROJECT_PATH.'/app/voicemails/voicemails.php';
+			}
+			$this->table = 'voicemail_greetings';
+			$this->uuid_prefix = 'voicemail_greeting_';
+			
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 
 		}
 
@@ -101,8 +109,7 @@ if (!class_exists('voicemail_greetings')) {
 							if (is_array($uuids) && @sizeof($uuids) != 0) {
 								$sql = "select ".$this->uuid_prefix."uuid as uuid, greeting_filename, greeting_id from v_".$this->table." ";
 								$sql .= "where ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$greeting_filenames[$row['uuid']] = $row['greeting_filename'];
@@ -139,10 +146,7 @@ if (!class_exists('voicemail_greetings')) {
 										$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 										$parameters['voicemail_id'] = $voicemail_id;
 										$parameters['greeting_id'] = $greeting_id;
-										$database = new database;
-										$database->app_name = $this->app_name;
-										$database->app_uuid = $this->app_uuid;
-										$database->execute($sql, $parameters);
+										$this->database->execute($sql, $parameters);
 										unset($sql, $parameters);
 									}
 								}
@@ -151,10 +155,7 @@ if (!class_exists('voicemail_greetings')) {
 						//delete the checked rows
 							if (is_array($array) && @sizeof($array) != 0) {
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 								//set message
 									message::add($text['message-delete']);
@@ -166,6 +167,3 @@ if (!class_exists('voicemail_greetings')) {
 		} //method
 
 	} //class
-}
-
-?>

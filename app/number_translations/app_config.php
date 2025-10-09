@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "Gérer mod_translate";  //translation provided by Google Translate
 		$apps[$x]['description']['he-il'] = "נהל את mod_translate";  //translation provided by Google Translate
 		$apps[$x]['description']['it-it'] = "Gestisci mod_translate";  //translation provided by Google Translate
+		$apps[$x]['description']['ka-ge'] = "mod_translate-ის თარგმნა";
 		$apps[$x]['description']['nl-nl'] = "Beheer mod_translate";  //translation provided by Google Translate
 		$apps[$x]['description']['pl-pl'] = "Zarządzaj mod_translate";  //translation provided by Google Translate
 		$apps[$x]['description']['pt-br'] = "Gerenciar mod_translate";  //translation provided by Google Translate
@@ -85,7 +86,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = 'Enter the number translation name.';
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = 'number_translation_enabled';
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = 'text';
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = 'boolean';
 		$apps[$x]['db'][$y]['fields'][$z]['toggle'] = ['true','false'];
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = 'Enter the number translation enabled.';
 		$z++;

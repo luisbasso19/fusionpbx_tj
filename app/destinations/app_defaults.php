@@ -33,7 +33,6 @@ if ($domains_processed == 1) {
 		$sql .= "and dialplan_detail_tag = 'action'\n";
 		$sql .= "and (dialplan_detail_type = 'transfer' or dialplan_detail_type = 'bridge')\n";
 		$sql .= "order by dialplan_detail_order;\n";
-		$database = new database;
 		$extensions = $database->select($sql, null, 'all');
 		unset($sql);
 
@@ -45,17 +44,15 @@ if ($domains_processed == 1) {
 				$parameters['destination_app'] = $row['destination_app'];
 				$parameters['destination_data'] = $row['destination_data'];
 				$parameters['dialplan_uuid'] = $row['dialplan_uuid'];
-				$database = new database;
 				$database->execute($sql, $parameters);
 				unset($sql, $parameters);
 			}
 		}
 		unset($extensions, $row, $array);
 
-	//use destinations actions to
+	//update destinations actions
 		$sql = "select * from v_destinations ";
 		$sql .= "where destination_actions is null ";
-		$database = new database;
 		$destinations = $database->select($sql, null, 'all');
 		if (is_array($destinations)) {
 			//pre-set the numbers
@@ -86,22 +83,21 @@ if ($domains_processed == 1) {
 					//save to the data
 					if (!empty($array)) {
 						//add temporary permissions
-						$p = new permissions;
+						$p = permissions::new();
 						$p->add('destination_edit', 'temp');
-		
+
 						//create the database object and save the data
-						$database = new database;
 						$database->app_name = 'destinations';
 						$database->app_uuid = '5ec89622-b19c-3559-64f0-afde802ab139';
 						$database->save($array, false);
 						unset($array);
-		
+
 						//remove the temporary permissions
 						$p->delete('destination_edit', 'temp');
 					}
 
 					//set the row id back to 0
-					$row_id = 0;		
+					$row_id = 0;
 				}
 
 				//increment the number
@@ -113,11 +109,96 @@ if ($domains_processed == 1) {
 
 			if (!empty($array)) {
 				//add temporary permissions
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add('destination_edit', 'temp');
 
 				//create the database object and save the data
-				$database = new database;
+				$database->app_name = 'destinations';
+				$database->app_uuid = '5ec89622-b19c-3559-64f0-afde802ab139';
+				$database->save($array, false);
+				unset($array);
+
+				//remove the temporary permissions
+				$p->delete('destination_edit', 'temp');
+			}
+		}
+		unset($sql, $num_rows);
+
+	//synchronize the destination actions with destination_app and destination_data
+		$sql = "select * from v_destinations ";
+		$sql .= "where destination_actions is not null ";
+		$destinations = $database->select($sql, null, 'all');
+		if (is_array($destinations)) {
+			//pre-set the numbers
+			$row_id = 0;
+			$z=0;
+
+			//loop through the array
+			foreach ($destinations as $row) {
+				$i = 0;
+				foreach (json_decode($row['destination_actions'], true) as $action) {
+					//build the array of destinations
+					if ($i == 0 ) {
+						$destination_action = $action['destination_app'] . ' ' . $action['destination_data'];
+						if ($destination_action !== $row['destination_app'] . ' ' . $row['destination_data']) {
+							$array['destinations'][$z]['destination_uuid'] = $row['destination_uuid'];
+							$array['destinations'][$z]['destination_number'] = $row['destination_number'];
+							$array['destinations'][$z]['destination_app'] = $action['destination_app'];
+							$array['destinations'][$z]['destination_data'] = $action['destination_data'];
+							$z++;
+						}
+					}
+					if ($i == 1) {
+						$destination_action = $action['destination_app'] . ' ' . $action['destination_data'];
+						if ($destination_action !== $row['destination_alternate_app'] . ' ' . $row['destination_alternate_data']) {
+							$array['destinations'][$z]['destination_uuid'] = $row['destination_uuid'];
+							$array['destinations'][$z]['destination_number'] = $row['destination_number'];
+							$array['destinations'][$z]['destination_alternate_app'] = $action['destination_app'];
+							$array['destinations'][$z]['destination_alternate_data'] = $action['destination_data'];
+							$z++;
+						}
+					}
+
+					//increment the id
+					$i++;
+				}
+
+				//process a chunk of the array
+				if ($row_id === 1000) {
+					//save to the data
+					if (!empty($array)) {
+
+						//add temporary permissions
+						$p = permissions::new();
+						$p->add('destination_edit', 'temp');
+
+						//create the database object and save the data
+						$database->app_name = 'destinations';
+						$database->app_uuid = '5ec89622-b19c-3559-64f0-afde802ab139';
+						//$database->save($array, false);
+						unset($array);
+
+						//remove the temporary permissions
+						$p->delete('destination_edit', 'temp');
+					}
+
+					//set the row id back to 0
+					$row_id = 0;
+				}
+
+				//increment the number
+				$row_id++;
+
+				//unset actions
+				unset($actions);
+			}
+
+			if (!empty($array)) {
+				//add temporary permissions
+				$p = permissions::new();
+				$p->add('destination_edit', 'temp');
+
+				//create the database object and save the data
 				$database->app_name = 'destinations';
 				$database->app_uuid = '5ec89622-b19c-3559-64f0-afde802ab139';
 				$database->save($array, false);

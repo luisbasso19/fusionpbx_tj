@@ -1,5 +1,5 @@
 --	Part of FusionPBX
---	Copyright (C) 2013-2023 Mark J Crane <markjcrane@fusionpbx.com>
+--	Copyright (C) 2013-2025 Mark J Crane <markjcrane@fusionpbx.com>
 --	All rights reserved.
 --
 --	Redistribution and use in source and binary forms, with or without
@@ -246,6 +246,22 @@
 					end
 				end
 
+				use_deletion_queue = 'false';
+				if (settings['voicemail']['use_deletion_queue'] ~= nil) then
+					if (settings['voicemail']['use_deletion_queue']['boolean'] ~= nil) then
+						use_deletion_queue = settings['voicemail']['use_deletion_queue']['boolean'];
+					end
+				end
+
+				deletion_queue_retention_hours = "24";
+				if (settings['voicemail'] ~= nil) then
+					if (settings['voicemail']['deletion_queue_retention_hours'] ~= nil) then
+						if (settings['voicemail']['deletion_queue_retention_hours']['numeric'] ~= nil) then
+							deletion_queue_retention_hours = settings['voicemail']['deletion_queue_retention_hours']['numeric'];
+						end
+					end
+				end
+
 			end
 
 			if (settings['voicemail']) then
@@ -272,10 +288,21 @@
 			if (voicemail_id ~= nil) then
 				if (session ~= nil and session:ready()) then
 					--get the information from the database
-						local sql = [[SELECT * FROM v_voicemails
-							WHERE domain_uuid = :domain_uuid
-							AND voicemail_id = :voicemail_id
-							AND voicemail_enabled = 'true' ]];
+						local sql = [[SELECT
+							voicemail_uuid, 
+							voicemail_password, 
+							greeting_id, 
+							voicemail_alternate_greet_id, 
+							voicemail_mail_to, 
+							cast(voicemail_attach_file as text), 
+							cast(voicemail_local_after_email as text), 
+							cast(voicemail_local_after_forward as text), 
+							cast(voicemail_transcription_enabled as text), 
+							cast(voicemail_tutorial as text) 
+							FROM v_voicemails 
+							WHERE domain_uuid = :domain_uuid 
+							AND voicemail_id = :voicemail_id 
+							AND voicemail_enabled = true ]];
 						local params = {domain_uuid = domain_uuid, voicemail_id = voicemail_id};
 						if (debug["sql"]) then
 							freeswitch.consoleLog("notice", "[voicemail] SQL: " .. sql .. "; params:" .. json.encode(params) .. "\n");
@@ -288,17 +315,10 @@
 							voicemail_mail_to = row["voicemail_mail_to"];
 							voicemail_attach_file = row["voicemail_attach_file"];
 							voicemail_local_after_email = row["voicemail_local_after_email"];
+							voicemail_local_after_forward = row["voicemail_local_after_forward"];
 							voicemail_transcription_enabled = row["voicemail_transcription_enabled"];
 							voicemail_tutorial = row["voicemail_tutorial"];
 						end);
-
-					--set default values
-						if (voicemail_local_after_email == nil) then
-							voicemail_local_after_email = "true";
-						end
-						if (voicemail_attach_file == nil) then
-							voicemail_attach_file = "true";
-						end
 
 					--valid voicemail
 						if (voicemail_uuid ~= nil and string.len(voicemail_uuid) > 0) then
@@ -326,6 +346,7 @@
 	require "resources.functions.base64";
 	require "resources.functions.trim";
 	require "resources.functions.file_exists";
+	require "resources.functions.file_size";
 	require "resources.functions.explode";
 	require "resources.functions.format_seconds";
 	require "resources.functions.mkdir";
@@ -359,6 +380,7 @@
 	require "app.voicemail.resources.functions.mwi_notify";
 	require "app.voicemail.resources.functions.blf_notify";
 	require "app.voicemail.resources.functions.tutorial";
+	require "app.voicemail.resources.functions.remove_deleted_messages";
 
 --send a message waiting event
 	if (voicemail_action == "mwi") then
@@ -383,24 +405,27 @@
 
 		--get voicemail message details
 			if (voicemail_id) then
-				local sql = [[SELECT * FROM v_voicemails
-					WHERE domain_uuid = :domain_uuid
-					AND voicemail_id = :voicemail_id]]
+				local sql = "SELECT ";
+				sql = sql .. " cast(voicemail_local_after_email as text), ";
+				sql = sql .. " cast(voicemail_local_after_forward as text), ";
+				sql = sql .. " cast(voicemail_attach_file as text), ";
+				sql = sql .. " voicemail_password, ";
+				sql = sql .. " voicemail_mail_to, ";
+				sql = sql .. " cast(voicemail_enabled as text) ";
+				sql = sql .. "FROM v_voicemails ";
+				sql = sql .. "WHERE domain_uuid = :domain_uuid ";
+				sql = sql .. "AND voicemail_id = :voicemail_id ";
 				local params = {domain_uuid = domain_uuid, voicemail_id = voicemail_id};
 				if (debug["sql"]) then
 					freeswitch.consoleLog("notice", "[voicemail] SQL: " .. sql .. "; params:" .. json.encode(params) .. "\n");
 				end
 				dbh:query(sql, params, function(row)
 					voicemail_local_after_email = row["voicemail_local_after_email"];
+					voicemail_local_after_forward = row["voicemail_local_after_forward"];
 				end);
 
-			--set default values
-				if (voicemail_local_after_email == nil) then
-					voicemail_local_after_email = "true";
-				end
-
 			--get the message count and send the mwi event
-				if (voicemail_local_after_email == 'true') then
+				if (voicemail_local_after_email == 'true' or voicemail_local_after_forward == 'true') then
 					message_waiting(voicemail_id, domain_uuid);
 				end
 			end
@@ -492,16 +517,27 @@
 				--save the message
 					record_message();
 
+				--build full path to file
+					local full_path = voicemail_dir.."/"..voicemail_id.."/msg_"..uuid.."."..vm_message_ext
+
+				--check the voicemail file size to see if the voicemail is valid
+					voicemail_file_size = file_size(full_path);
+					freeswitch.consoleLog("notice", "[voicemail] file size ".. voicemail_file_size .. "\n");
+					if (voicemail_file_size < 3000) then
+						--set the message length to 0
+						message_length = 0;
+
+						--delete the file
+						os.remove(full_path);
+					end
+
 				--process base64
-					if (storage_type == "base64") then
+					if (storage_type == "base64" and tonumber(message_length) > 1) then
 						--show the storage type
 							freeswitch.consoleLog("notice", "[voicemail] ".. storage_type .. "\n");
 
 						--include the file io
 							local file = require "resources.functions.file"
-
-						-- build full path to file
-							local full_path = voicemail_dir.."/"..voicemail_id.."/msg_"..uuid.."."..vm_message_ext
 
 							if file_exists(full_path) then
 								--read file content as base64 string
@@ -526,26 +562,27 @@
 						x = x + 1;
 					end);
 					table.insert(destinations, {domain_uuid=domain_uuid,voicemail_destination_uuid=voicemail_uuid,voicemail_uuid=voicemail_uuid,voicemail_uuid_copy=voicemail_uuid});
+
 				--show the storage type
 					freeswitch.consoleLog("notice", "[voicemail] ".. storage_type .. "\n");
 
-					count = 0
+					destination_count = 0
 					for k,v in pairs(destinations) do
-						count = count + 1
+						destination_count = destination_count + 1
 					end
 
 				--loop through the voicemail destinations
 					y = 1;
 					for key,row in pairs(destinations) do
 						--determine uuid
-							if (y == count) then
+							if (y == destination_count) then
 								voicemail_message_uuid = uuid;
 							else
 								voicemail_message_uuid = api:execute("create_uuid");
 							end
 							y = y + 1;
 						--save the message to the voicemail messages
-							if (message_length ~= nil and tonumber(message_length) > 2) then
+							if (message_length ~= nil and tonumber(message_length) > 1) then
 								caller_id_name = string.gsub(caller_id_name,"'","''");
 								local sql = {}
 								table.insert(sql, "INSERT INTO v_voicemail_messages ");
@@ -558,9 +595,6 @@
 								table.insert(sql, "caller_id_number, ");
 								if (storage_type == "base64") then
 									table.insert(sql, "message_base64, ");
-								end
-								if (transcribe_enabled == "true") and (voicemail_transcription_enabled == "true") then
-									table.insert(sql, "message_transcription, ");
 								end
 								table.insert(sql, "message_length ");
 								--table.insert(sql, "message_status, ");
@@ -577,9 +611,6 @@
 								if (storage_type == "base64") then
 									table.insert(sql, ":message_base64, ");
 								end
-								if (transcribe_enabled == "true") and (voicemail_transcription_enabled == "true") then
-									table.insert(sql,  ":transcription, ");
-								end
 								table.insert(sql, ":message_length ");
 								--table.insert(sql, ":message_status, ");
 								--table.insert(sql, ":message_priority ");
@@ -593,7 +624,6 @@
 									caller_id_name = caller_id_name;
 									caller_id_number = caller_id_number;
 									message_base64 = message_base64;
-									transcription = transcription;
 									message_length = message_length;
 									--message_status = message_status;
 									--message_priority = message_priority;
@@ -659,18 +689,49 @@
 							end
 
 						--send the message waiting event
-							if (message_length ~= nil and tonumber(message_length) > 2) then
+							if (message_length ~= nil and tonumber(message_length) > 1) then
 								message_waiting(voicemail_id_copy, domain_uuid);
 							end
 
 						--send the email with the voicemail recording attached
-							if (message_length ~= nil and tonumber(message_length) > 2) then
+							if (message_length ~= nil and tonumber(message_length) > 1) then
 								send_email(voicemail_id_copy, voicemail_message_uuid);
 								if (voicemail_to_sms) then
 									send_sms(voicemail_id_copy, voicemail_message_uuid);
 								end
 							end
 					end --for
+
+				--whether to keep the voicemail message and details local after forward (local after email is handled elsewhere)
+					if (string.len(voicemail_mail_to) <= 2 and destination_count > 1 and voicemail_local_after_forward == "false") then
+						--delete the voicemail message details
+							local sql = [[DELETE FROM v_voicemail_messages
+								WHERE domain_uuid = :domain_uuid
+								AND voicemail_uuid = :voicemail_uuid
+								AND voicemail_message_uuid = :uuid]]
+							local params = {
+								domain_uuid = domain_uuid,
+								voicemail_uuid = voicemail_uuid,
+								uuid = uuid
+								};
+							if (debug["sql"]) then
+								freeswitch.consoleLog("notice", "[voicemail] SQL: " .. sql .. "; params:" .. json.encode(params) .. "\n");
+							end
+							dbh:query(sql, params);
+						--delete voicemail recording file
+							if (file_exists(full_path)) then
+								os.remove(full_path);
+							end
+						--set message waiting indicator
+							message_waiting(voicemail_id, domain_uuid);
+						--clear the variable
+							db_voicemail_uuid = '';
+					elseif (storage_type == "base64") then
+						--delete voicemail recording file
+							if (file_exists(full_path)) then
+								os.remove(full_path);
+							end
+					end
 
 			else
 				--voicemail not enabled or does not exist

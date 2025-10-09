@@ -81,7 +81,7 @@
 		$user_setting_name = strtolower($_POST["user_setting_name"] ?? '');
 		$user_setting_value = $_POST["user_setting_value"] ?? '';
 		$user_setting_order = $_POST["user_setting_order"] ?? '';
-		$user_setting_enabled = strtolower($_POST["user_setting_enabled"] ?? 'false');
+		$user_setting_enabled = $_POST["user_setting_enabled"];
 		$user_setting_description = $_POST["user_setting_description"] ?? '';
 	}
 
@@ -133,7 +133,6 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 						$sql .= "where domain_uuid = :domain_uuid ";
 						$sql .= "and app_uuid = '9f356fe7-8cf8-4c14-8fe2-6daf89304458' ";
 						$parameters['domain_uuid'] = $domain_uuid;
-						$database = new database;
 						$dialplan_uuid = $database->select($sql, $parameters, 'column');
 						unset($sql, $parameters);
 
@@ -146,7 +145,6 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 						$sql .= "and dialplan_detail_data like 'timezone=%' ";
 						$parameters['domain_uuid'] = $domain_uuid;
 						$parameters['dialplan_uuid'] = $dialplan_uuid;
-						$database = new database;
 						$dialplan_detail_uuid = $database->select($sql, $parameters, 'column');
 						if (is_uuid($dialplan_detail_uuid)) {
 							$detail_action = "update";
@@ -155,14 +153,14 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 
 					//update the timezone
 						if ($detail_action == "update") {
-							$p = new permissions;
+							$p = permissions::new();
 							$p->add('dialplan_detail_edit', 'temp');
 
 							$array['dialplan_details'][0]['dialplan_detail_uuid'] = $dialplan_detail_uuid;
 							$array['dialplan_details'][0]['dialplan_detail_data'] = 'timezone='.$user_setting_value;
 						}
 						else {
-							$p = new permissions;
+							$p = permissions::new();
 							$p->add('dialplan_detail_add', 'temp');
 
 							$array['dialplan_details'][0]['domain_uuid'] = $domain_uuid;
@@ -175,7 +173,6 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 							$array['dialplan_details'][0]['dialplan_detail_group'] = 0;
 						}
 						if (is_array($array) && sizeof($array) != 0) {
-							$database = new database;
 							$database->app_name = 'user_settings';
 							$database->app_uuid = '3a3337f7-78d1-23e3-0cfd-f14499b8ed97';
 							$database->save($array);
@@ -208,7 +205,6 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 					$array['user_settings'][0]['user_setting_enabled'] = $user_setting_enabled;
 					$array['user_settings'][0]['user_setting_description'] = $user_setting_description;
 
-					$database = new database;
 					$database->app_name = 'user_settings';
 					$database->app_uuid = '3a3337f7-78d1-23e3-0cfd-f14499b8ed97';
 					$database->save($array);
@@ -221,13 +217,12 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 					$sql .= "where app_uuid = '34dd307b-fffe-4ead-990c-3d070e288126' ";
 					$sql .= "and domain_uuid = :domain_uuid ";
 					$parameters['domain_uuid'] = $_SESSION["domain_uuid"];
-					$database = new database;
 					$result = $database->select($sql, $parameters, 'all');
 					unset($sql, $parameters);
 
 					$time_zone_found = false;
 					if (is_array($result) && sizeof($result) != 0) {
-						foreach ($result as &$row) {
+						foreach ($result as $row) {
 							//get the dialplan_uuid
 								$dialplan_uuid = $row["dialplan_uuid"];
 
@@ -237,7 +232,6 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 								$sql .= "and domain_uuid = :domain_uuid ";
 								$parameters['dialplan_uuid'] = $dialplan_uuid;
 								$parameters['domain_uuid'] = $_SESSION["domain_uuid"];
-								$database = new database;
 								$sub_result = $database->select($sql, $parameters, 'all');
 								if (is_array($sub_result) && sizeof($sub_result) != 0) {
 									foreach ($sub_result as $sub_row) {
@@ -269,10 +263,9 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 									$array['dialplan_details'][0]['dialplan_detail_group'] = !empty($dialplan_detail_group) ? $dialplan_detail_group : 'null';
 									$array['dialplan_details'][0]['dialplan_detail_order'] = '15';
 
-									$p = new permissions;
+									$p = permissions::new();
 									$p->add('dialplan_detail_add', 'temp');
 
-									$database = new database;
 									$database->app_name = 'user_settings';
 									$database->app_uuid = '3a3337f7-78d1-23e3-0cfd-f14499b8ed97';
 									$database->save($array);
@@ -288,10 +281,9 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 									$array['dialplan_details'][0]['domain_uuid'] = $_SESSION["domain_uuid"];
 									$array['dialplan_details'][0]['dialplan_uuid'] = $dialplan_uuid;
 
-									$p = new permissions;
+									$p = permissions::new();
 									$p->add('dialplan_detail_edit', 'temp');
 
-									$database = new database;
 									$database->app_name = 'user_settings';
 									$database->app_uuid = '3a3337f7-78d1-23e3-0cfd-f14499b8ed97';
 									$database->save($array);
@@ -302,6 +294,9 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 						}
 					}
 				}
+
+			//clear the user settings cache
+				settings::clear_cache('user');
 
 			//redirect the browser
 				if ($action == "update") {
@@ -318,13 +313,12 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 //pre-populate the form
 	if (!empty($_GET["id"]) && empty($_POST["persistformvar"])) {
 		$user_setting_uuid = $_GET["id"];
-		$sql = "select user_setting_category, user_setting_subcategory, user_setting_name, user_setting_value, user_setting_order, cast(user_setting_enabled as text), user_setting_description ";
+		$sql = "select user_setting_category, user_setting_subcategory, user_setting_name, user_setting_value, user_setting_order, user_setting_enabled, user_setting_description ";
 		$sql .= "from v_user_settings ";
 		$sql .= "where user_setting_uuid = :user_setting_uuid ";
 		$sql .= "and user_uuid = :user_uuid ";
 		$parameters['user_setting_uuid'] = $user_setting_uuid;
 		$parameters['user_uuid'] = $user_uuid;
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (is_array($row) && sizeof($row) != 0) {
 			$user_setting_category = $row["user_setting_category"];
@@ -364,8 +358,8 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	}
 	echo	"</div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'style'=>'margin-right: 15px;','link'=>'/core/users/user_edit.php?id='.urlencode($user_uuid)]);
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'style'=>'margin-right: 15px;','link'=>'/core/users/user_edit.php?id='.urlencode($user_uuid)]);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
@@ -378,6 +372,8 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	}
 	echo "<br /><br />\n";
 
+
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -443,7 +439,6 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 		echo "		<option value=''></option>\n";
 		$sql = "select * from v_menus ";
 		$sql .= "order by menu_language, menu_name asc ";
-		$database = new database;
 		$result = $database->select($sql, null, 'all');
 		if (is_array($result) && sizeof($result) != 0) {
 			foreach ($result as $row) {
@@ -546,8 +541,8 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 		echo "    	<option value='textarea' ".($user_setting_value == "textarea" ? "selected='selected'" : null).">TextArea</option>\n";
 		echo "	</select>\n";
 	}
-	else if ($user_setting_subcategory == 'password' || substr_count($user_setting_subcategory, '_password') > 0 || $user_setting_category == "login" && $user_setting_subcategory == "password_reset_key" && $user_setting_name == "text") {
-		echo "	<input class='formfld' type='password' id='user_setting_value' name='user_setting_value' maxlength='255' onmouseover=\"this.type='text';\" onfocus=\"this.type='text';\" onmouseout=\"if (!$(this).is(':focus')) { this.type='password'; }\" onblur=\"this.type='password';\" value=\"".escape($user_setting_value)."\">\n";
+	else if ($user_setting_subcategory == 'password' || (substr_count($user_setting_subcategory, '_password') > 0 && $user_setting_subcategory != 'input_text_font_password') || $user_setting_category == "login" && $user_setting_subcategory == "password_reset_key" && $user_setting_name == "text") {
+		echo "	<input class='formfld password' type='password' id='user_setting_value' name='user_setting_value' maxlength='255' onmouseover=\"this.type='text';\" onfocus=\"this.type='text';\" onmouseout=\"if (!$(this).is(':focus')) { this.type='password'; }\" onblur=\"this.type='password';\" value=\"".escape($user_setting_value)."\">\n";
 	}
 	else if ($user_setting_category == "theme" && substr_count($user_setting_subcategory, "_color") > 0 && ($user_setting_name == "text" || $user_setting_name == 'array')) {
 		echo "	<input type='text' class='formfld colorpicker' id='user_setting_value' name='user_setting_value' value=\"".$user_setting_value."\">\n";
@@ -595,8 +590,8 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	}
 	else if ($user_setting_category == "theme" && $user_setting_subcategory == "domain_visible" && $user_setting_name == "text" ) {
 		echo "    <select class='formfld' id='user_setting_value' name='user_setting_value'>\n";
-		echo "    	<option value='false' ".(($user_setting_value == "false") ? "selected='selected'" : null).">".$text['label-false']."</option>\n";
-		echo "    	<option value='true' ".(($user_setting_value == "true") ? "selected='selected'" : null).">".$text['label-true']."</option>\n";
+		echo "    	<option value='false' ".(($user_setting_value == 'false') ? "selected='selected'" : null).">".$text['label-false']."</option>\n";
+		echo "    	<option value='true' ".(($user_setting_value == 'true') ? "selected='selected'" : null).">".$text['label-true']."</option>\n";
 		echo "    </select>\n";
 	}
 	else if ($user_setting_category == "theme" && $user_setting_subcategory == "menu_brand_type" && $user_setting_name == "text" ) {
@@ -662,7 +657,7 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	}
 	elseif ($user_setting_category == "theme" && $user_setting_subcategory == "input_toggle_style" && $user_setting_name == "text" ) {
 		echo "	<select class='formfld' id='user_setting_value' name='user_setting_value'>\n";
-		echo "    	<option value='select'>".$text['option-select']."</option>\n";
+		echo "    	<option value='select'>".$text['option-select_box']."</option>\n";
 		echo "    	<option value='switch_round' ".(($user_setting_value == "switch_round") ? "selected='selected'" : null).">".$text['option-switch_round']."</option>\n";
 		echo "    	<option value='switch_square' ".(($user_setting_value == "switch_square") ? "selected='selected'" : null).">".$text['option-switch_square']."</option>\n";
 		echo "	</select>\n";
@@ -697,7 +692,7 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 		}
 		else {
 			echo "	<option value='false'>".$text['label-false']."</option>\n";
-			echo "	<option value='true' ".((strtolower($user_setting_value) == "true") ? "selected='selected'" : null).">".$text['label-true']."</option>\n";
+			echo "	<option value='true' ".((strtolower($user_setting_value) == 'true') ? "selected='selected'" : null).">".$text['label-true']."</option>\n";
 		}
 		echo "	</select>\n";
 	}
@@ -712,7 +707,7 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	echo "<br />\n";
 	echo $text['description-value']."\n";
 	if ($user_setting_category == "theme" && substr_count($user_setting_subcategory, "_font") > 0 && $user_setting_name == "text") {
-		echo "&nbsp;&nbsp;".$text['label-reference'].": <a href='https://www.google.com/fonts' target='_blank'>".$text['label-web_fonts']."</a>\n";
+		echo "&nbsp;&nbsp;".$text['label-reference'].": <a href='https://fonts.google.com' target='_blank'>".$text['label-web_fonts']."</a>\n";
 	}
 	echo "</td>\n";
 	echo "</tr>\n";
@@ -754,20 +749,18 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	echo "    ".$text['label-enabled']."\n";
 	echo "</td>\n";
 	echo "<td width='70%' class='vtable' align='left'>\n";
-	if (substr($_SESSION['theme']['input_toggle_style']['text'], 0, 6) == 'switch') {
-		echo "	<label class='switch'>\n";
-		echo "		<input type='checkbox' id='user_setting_enabled' name='user_setting_enabled' value='true' ".($user_setting_enabled == 'true' ? "checked='checked'" : null).">\n";
-		echo "		<span class='slider'></span>\n";
-		echo "	</label>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<select class='formfld' id='user_setting_enabled' name='user_setting_enabled'>\n";
-		echo "		<option value='true' ".($user_setting_enabled == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-		echo "		<option value='false' ".($user_setting_enabled == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
-		echo "	</select>\n";
+	echo "	<select class='formfld' id='user_setting_enabled' name='user_setting_enabled'>\n";
+	echo "		<option value='true' ".($user_setting_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($user_setting_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "	</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
 	echo "<br />\n";
-	//echo $text['description-setting_enabled']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
 
@@ -792,18 +785,21 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	echo "		</td>\n";
 	echo "	</tr>";
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br />";
 	echo "</form>";
 
 	echo "<script>\n";
-//hide/convert password fields then submit form
+	echo "	//hide/convert password fields then submit form\n";
 	echo "	function submit_form() {\n";
 	echo "		hide_password_fields();\n";
 	echo "		$('form#frm').submit();\n";
 	echo "	}\n";
-//define lowercase class
+	echo "\n";
+	echo "	//define lowercase class\n";
 	echo "	$('.lowercase').on('blur',function(){ this.value = this.value.toLowerCase(); });";
-//show order if array
+	echo "\n";
+	echo "	//show order if array\n";
 	echo "	$('#user_setting_name').on('keyup',function(){ \n";
 	echo "		(this.value.toLowerCase() == 'array') ? $('#tr_order').slideDown('fast') : $('#tr_order').slideUp('fast');\n";
 	echo "	});\n";

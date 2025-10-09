@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -50,7 +50,7 @@
 	else {
 		$action = "add";
 	}
-	
+
 //set the defaults
 	$broadcast_name = '';
 	$broadcast_start_time = '';
@@ -126,7 +126,6 @@
 			$sql .= "and type_value = :type_value ";
 			$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 			$parameters['type_value'] = $_POST['accountcode'];
-			$database = new database;
 			$num_rows = $database->select($sql, $parameters, 'column');
 			$broadcast_accountcode = $num_rows > 0 ? $_POST["broadcast_accountcode"] : $_SESSION['domain_name'];
 			unset($sql, $parameters, $num_rows);
@@ -266,10 +265,7 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 					}
 					$array['call_broadcasts'][0]['broadcast_description'] = $broadcast_description;
 
-				//execute
-					$database = new database;
-					$database->app_name = 'call_broadcast';
-					$database->app_uuid = 'efc11f6b-ed73-9955-4d4d-3a1bed75a056';
+				//save changes to the database
 					$database->save($array);
 					unset($array);
 
@@ -290,7 +286,6 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 		$sql .= "and call_broadcast_uuid = :call_broadcast_uuid ";
 		$parameters['domain_uuid'] = $domain_uuid;
 		$parameters['call_broadcast_uuid'] = $call_broadcast_uuid;
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (!empty($row)) {
 			$broadcast_name = $row["broadcast_name"];
@@ -333,15 +328,15 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['title-call_broadcast']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','link'=>'call_broadcast.php']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','link'=>'call_broadcast.php']);
 	if ($action == "update") {
-		echo button::create(['type'=>'button','label'=>$text['button-start'],'icon'=>$_SESSION['theme']['button_icon_start'],'style'=>'margin-left: 15px;','link'=>'call_broadcast_send.php?id='.urlencode($call_broadcast_uuid)]);
-		echo button::create(['type'=>'button','label'=>$text['button-stop'],'icon'=>$_SESSION['theme']['button_icon_stop'],'link'=>'call_broadcast_stop.php?id='.urlencode($call_broadcast_uuid)]);
+		echo button::create(['type'=>'button','label'=>$text['button-start'],'icon'=>$settings->get('theme', 'button_icon_start'),'style'=>'margin-left: 15px;','link'=>'call_broadcast_send.php?id='.urlencode($call_broadcast_uuid)]);
+		echo button::create(['type'=>'button','label'=>$text['button-stop'],'icon'=>$settings->get('theme', 'button_icon_stop'),'link'=>'call_broadcast_stop.php?id='.urlencode($call_broadcast_uuid)]);
 		if (permission_exists('call_broadcast_delete')) {
-			echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$_SESSION['theme']['button_icon_delete'],'name'=>'btn_delete','style'=>'margin-left: 15px;','onclick'=>"modal_open('modal-delete','btn_delete');"]);
+			echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$settings->get('theme', 'button_icon_delete'),'name'=>'btn_delete','style'=>'margin-left: 15px;','onclick'=>"modal_open('modal-delete','btn_delete');"]);
 		}
 	}
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','style'=>'margin-left: 15px;']);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','style'=>'margin-left: 15px;']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
@@ -350,6 +345,7 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 		echo modal::create(['id'=>'modal-delete','type'=>'delete','actions'=>button::create(['type'=>'submit','label'=>$text['button-continue'],'icon'=>'check','id'=>'btn_delete','style'=>'float: right; margin-left: 15px;','collapse'=>'never','name'=>'action','value'=>'delete','onclick'=>"modal_close();"])]);
 	}
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -427,7 +423,6 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	//$sql .= "select * from v_recordings ";
 	//$sql .= "where domain_uuid = :domain_uuid ";
 	//$parameters['domain_uuid'] = $domain_uuid;
-	//$database = new database;
 	//$rows = $database->select($sql, $parameters, 'all');
 	//if (!empty($rows)) {
 	//	foreach ($rows as $row) {
@@ -533,10 +528,17 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 		echo "    ".$text['label-avmd']."\n";
 		echo "</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "    <select class='formfld' name='broadcast_avmd'>\n";
-		echo "    	<option value='false'>".$text['option-false']."</option>\n";
-		echo "    	<option value='true' ".(!empty($broadcast_avmd) && $broadcast_avmd == "true" ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-		echo "    </select>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
+		}
+		echo "	<select class='formfld' id='broadcast_avmd' name='broadcast_avmd'>\n";
+		echo "		<option value='true' ".($broadcast_avmd === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "		<option value='false' ".($broadcast_avmd === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "	</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
+		}
 		echo "<br />\n";
 		echo $text['description-avmd']."\n";
 		echo "</td>\n";
@@ -567,6 +569,7 @@ if (!empty($_POST) && empty($_POST["persistformvar"])) {
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br><br>";
 
 	if ($action == "update") {

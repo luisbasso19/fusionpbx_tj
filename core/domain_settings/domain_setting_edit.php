@@ -81,8 +81,13 @@
 		$domain_setting_name = strtolower($_POST["domain_setting_name"]);
 		$domain_setting_value = $_POST["domain_setting_value"];
 		$domain_setting_order = $_POST["domain_setting_order"];
-		$domain_setting_enabled = strtolower($_POST["domain_setting_enabled"] ?? 'false');
+		$domain_setting_enabled = $_POST["domain_setting_enabled"];
 		$domain_setting_description = $_POST["domain_setting_description"];
+	}
+
+//sanitize the variables
+	if (!empty($domain_setting_category)) {
+		$domain_setting_category = preg_replace('#[^a-zA-Z0-9_\-\. ]#', '', $domain_setting_category);
 	}
 
 //process the data
@@ -108,7 +113,6 @@
 			if (empty($domain_setting_name)) { $msg .= $text['message-required'].$text['label-type']."<br>\n"; }
 			//if (empty($domain_setting_value)) { $msg .= $text['message-required'].$text['label-value']."<br>\n"; }
 			if (empty($domain_setting_order)) { $msg .= $text['message-required'].$text['label-order']."<br>\n"; }
-			if (empty($domain_setting_enabled)) { $msg .= $text['message-required'].$text['label-enabled']."<br>\n"; }
 			//if (empty($domain_setting_description)) { $msg .= $text['message-required'].$text['label-description']."<br>\n"; }
 			if (!empty($msg) && empty($_POST["persistformvar"])) {
 				require_once "resources/header.php";
@@ -135,7 +139,6 @@
 							$sql .= "where domain_uuid = :domain_uuid ";
 							$sql .= "and app_uuid = '9f356fe7-8cf8-4c14-8fe2-6daf89304458' ";
 							$parameters['domain_uuid'] = $domain_uuid;
-							$database = new database;
 							$dialplan_uuid = $database->select($sql, $parameters, 'column');
 							unset($sql, $parameters);
 
@@ -148,13 +151,12 @@
 							$sql .= "and dialplan_detail_data like 'timezone=%' ";
 							$parameters['domain_uuid'] = $domain_uuid;
 							$parameters['dialplan_uuid'] = $dialplan_uuid;
-							$database = new database;
 							$dialplan_detail_uuid = $database->select($sql, $parameters, 'column');
 							$detail_action = is_uuid($dialplan_detail_uuid) ? 'update' : 'add';
 							unset($sql, $parameters);
 
 						//update the timezone
-							$p = new permissions;
+							$p = permissions::new();
 							if ($detail_action == "update") {
 								$array['dialplan_details'][0]['dialplan_detail_uuid'] = $dialplan_detail_uuid;
 								$array['dialplan_details'][0]['dialplan_detail_data'] = 'timezone='.$domain_setting_value;
@@ -174,7 +176,6 @@
 							}
 
 							if (!empty($array)) {
-								$database = new database;
 								$database->app_name = 'domain_settings';
 								$database->app_uuid = 'b31e723a-bf70-670c-a49b-470d2a232f71';
 								$database->save($array);
@@ -188,7 +189,6 @@
 							$sql = "select domain_name from v_domains ";
 							$sql .= "where domain_uuid = :domain_uuid ";
 							$parameters['domain_uuid'] = $domain_uuid;
-							$database = new database;
 							$domain_name = $database->select($sql, $parameters, 'column');
 							unset($sql, $parameters);
 
@@ -223,7 +223,6 @@
 						$array['domain_settings'][0]['domain_setting_order'] = $domain_setting_order;
 						$array['domain_settings'][0]['domain_setting_enabled'] = $domain_setting_enabled;
 						$array['domain_settings'][0]['domain_setting_description'] = $domain_setting_description;
-						$database = new database;
 						$database->app_name = 'domain_settings';
 						$database->app_uuid = 'b31e723a-bf70-670c-a49b-470d2a232f71';
 						$database->save($array);
@@ -236,13 +235,12 @@
 						$sql .= "where app_uuid = '34dd307b-fffe-4ead-990c-3d070e288126' ";
 						$sql .= "and domain_uuid = :domain_uuid ";
 						$parameters['domain_uuid'] = $_SESSION["domain_uuid"];
-						$database = new database;
 						$result = $database->select($sql, $parameters, 'all');
 						unset($sql, $parameters);
 
 						$time_zone_found = false;
 						if (!empty($result)) {
-							foreach ($result as &$row) {
+							foreach ($result as $row) {
 								//get the dialplan_uuid
 									$dialplan_uuid = $row["dialplan_uuid"];
 
@@ -252,7 +250,6 @@
 									$sql .= "and domain_uuid = :domain_uuid ";
 									$parameters['dialplan_uuid'] = $dialplan_uuid;
 									$parameters['domain_uuid'] = $_SESSION["domain_uuid"];
-									$database = new database;
 									$sub_result = $database->select($sql, $parameters, 'all');
 									if (!empty($sub_result)) {
 										foreach ($sub_result as $field) {
@@ -284,7 +281,7 @@
 										$array['dialplan_details'][0]['dialplan_detail_group'] = $dialplan_detail_group;
 										$array['dialplan_details'][0]['dialplan_detail_order'] = '15';
 
-										$p = new permissions;
+										$p = permissions::new();
 										$p->add('dialplan_detail_add', 'temp');
 									}
 
@@ -293,13 +290,12 @@
 										$array['dialplan_details'][0]['dialplan_detail_uuid'] = $dialplan_detail_uuid;
 										$array['dialplan_details'][0]['dialplan_detail_data'] = 'timezone='.$domain_setting_value;
 
-										$p = new permissions;
+										$p = permissions::new();
 										$p->add('dialplan_detail_edit', 'temp');
 									}
 
 								//execute
 									if (!empty($array)) {
-										$database = new database;
 										$database->app_name = 'domain_settings';
 										$database->app_uuid = 'b31e723a-bf70-670c-a49b-470d2a232f71';
 										$database->save($array);
@@ -311,6 +307,9 @@
 							}
 						}
 					}
+
+				//clear domain apcu cache due to changes
+					settings::clear_cache('domain');
 
 				//redirect the browser
 					if ($action == "update") {
@@ -327,13 +326,20 @@
 //pre-populate the form
 	if (empty($_POST["persistformvar"]) && !empty($_GET["id"]) && is_uuid($_GET["id"])) {
 		$domain_setting_uuid = $_GET["id"];
-		$sql = "select domain_setting_uuid, domain_setting_category, domain_setting_subcategory, domain_setting_name, domain_setting_value, domain_setting_order, cast(domain_setting_enabled as text), domain_setting_description ";
+		$sql = "select ";
+		$sql .= "domain_setting_uuid, ";
+		$sql .= "domain_setting_category, ";
+		$sql .= "domain_setting_subcategory, ";
+		$sql .= "domain_setting_name, ";
+		$sql .= "domain_setting_value, ";
+		$sql .= "domain_setting_order, ";
+		$sql .= "domain_setting_enabled, ";
+		$sql .= "domain_setting_description ";
 		$sql .= "from v_domain_settings ";
 		$sql .= "where domain_uuid = :domain_uuid ";
 		$sql .= "and domain_setting_uuid = :domain_setting_uuid ";
 		$parameters['domain_uuid'] = $domain_uuid;
 		$parameters['domain_setting_uuid'] = $domain_setting_uuid;
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (!empty($row)) {
 			$domain_setting_category = $row["domain_setting_category"];
@@ -353,7 +359,6 @@
 	$domain_setting_name = $domain_setting_name ?? '';
 	$domain_setting_value = $domain_setting_value ?? '';
 	$domain_setting_order = $domain_setting_order ?? '';
-	$domain_setting_enabled = $domain_setting_enabled ?? 'true';
 	$domain_setting_description = $domain_setting_description ?? '';
 
 //create token
@@ -382,8 +387,8 @@
 	}
 	echo "	</div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>PROJECT_PATH.'/core/domains/domain_edit.php?id='.urlencode($domain_uuid)]);
-	echo button::create(['type'=>'button','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','onclick'=>'submit_form();']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>PROJECT_PATH.'/core/domains/domain_edit.php?id='.urlencode($domain_uuid)]);
+	echo button::create(['type'=>'button','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','onclick'=>'submit_form();']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
@@ -396,6 +401,7 @@
 	}
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -469,7 +475,6 @@
 		echo "		<option value=''></option>\n";
 		$sql = "select * from v_menus ";
 		$sql .= "order by menu_language, menu_name asc ";
-		$database = new database;
 		$sub_result = $database->select($sql, null, 'all');
 		if (!empty($sub_result)) {
 			foreach ($sub_result as $sub_row) {
@@ -568,8 +573,8 @@
 		echo "    	<option value='textarea' ".($domain_setting_value == "textarea" ? "selected='selected'" : null).">TextArea</option>\n";
 		echo "	</select>\n";
 	}
-	elseif ($subcategory == 'password' || substr_count($subcategory, '_password') > 0 || $category == "login" && $subcategory == "password_reset_key" && $name == "text") {
-		echo "	<input class='formfld' type='password' id='domain_setting_value' name='domain_setting_value' maxlength='255' onmouseover=\"this.type='text';\" onfocus=\"this.type='text';\" onmouseout=\"if (!$(this).is(':focus')) { this.type='password'; }\" onblur=\"this.type='password';\" value=\"".escape($row['domain_setting_value'])."\">\n";
+	elseif ($subcategory == 'password' || (substr_count($subcategory, '_password') > 0 && $subcategory != 'input_text_font_password') || $category == "login" && $subcategory == "password_reset_key" && $name == "text") {
+		echo "	<input class='formfld password' type='password' id='domain_setting_value' name='domain_setting_value' maxlength='255' onmouseover=\"this.type='text';\" onfocus=\"this.type='text';\" onmouseout=\"if (!$(this).is(':focus')) { this.type='password'; }\" onblur=\"this.type='password';\" value=\"".escape($row['domain_setting_value'])."\">\n";
 	}
 	elseif ($category == "theme" && substr_count($subcategory, "_color") > 0 && ($name == "text" || $name == 'array')) {
 		echo "	<input type='text' class='formfld colorpicker' id='domain_setting_value' name='domain_setting_value' value=\"".escape($row['domain_setting_value'])."\">\n";
@@ -716,7 +721,7 @@
 	}
 	elseif ($category == "theme" && $subcategory == "input_toggle_style" && $name == "text" ) {
 		echo "	<select class='formfld' id='domain_setting_value' name='domain_setting_value'>\n";
-		echo "    	<option value='select'>".$text['option-select']."</option>\n";
+		echo "    	<option value='select'>".$text['option-select_box']."</option>\n";
 		echo "    	<option value='switch_round' ".(($row['domain_setting_value'] == "switch_round") ? "selected='selected'" : null).">".$text['option-switch_round']."</option>\n";
 		echo "    	<option value='switch_square' ".(($row['domain_setting_value'] == "switch_square") ? "selected='selected'" : null).">".$text['option-switch_square']."</option>\n";
 		echo "	</select>\n";
@@ -786,7 +791,7 @@
 	echo "<br />\n";
 	echo $text['description-value']."\n";
 	if ($category == "theme" && substr_count($subcategory, "_font") > 0 && $name == "text") {
-		echo "&nbsp;&nbsp;".$text['label-reference'].": <a href='https://www.google.com/fonts' target='_blank'>".$text['label-web_fonts']."</a>\n";
+		echo "&nbsp;&nbsp;".$text['label-reference'].": <a href='https://fonts.google.com' target='_blank'>".$text['label-web_fonts']."</a>\n";
 	}
 	echo "</td>\n";
 	echo "</tr>\n";
@@ -828,17 +833,16 @@
 	echo "    ".$text['label-enabled']."\n";
 	echo "</td>\n";
 	echo "<td width='70%' class='vtable' align='left'>\n";
-	if (substr($_SESSION['theme']['input_toggle_style']['text'], 0, 6) == 'switch') {
-		echo "	<label class='switch'>\n";
-		echo "		<input type='checkbox' id='domain_setting_enabled' name='domain_setting_enabled' value='true' ".($domain_setting_enabled == 'true' ? "checked='checked'" : null).">\n";
-		echo "		<span class='slider'></span>\n";
-		echo "	</label>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<select class='formfld' id='domain_setting_enabled' name='domain_setting_enabled'>\n";
-		echo "		<option value='true' ".($domain_setting_enabled == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-		echo "		<option value='false' ".($domain_setting_enabled == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
-		echo "	</select>\n";
+	echo "	<select class='formfld' id='domain_setting_enabled' name='domain_setting_enabled'>\n";
+	echo "		<option value='true' ".($domain_setting_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($domain_setting_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "	</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
 	echo "<br />\n";
 	echo $text['description-setting_enabled']."\n";
@@ -857,6 +861,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>";
 	echo "<br /><br />";
 
 	echo "<input type='hidden' name='domain_uuid' value='".escape($domain_uuid)."'>\n";

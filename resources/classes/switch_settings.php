@@ -5,7 +5,6 @@
  *
  * @method settings will add missing switch directories to default settings
  */
-if (!class_exists('switch_settings')) {
 	class switch_settings {
 
 		public $event_socket_ip_address;
@@ -13,10 +12,13 @@ if (!class_exists('switch_settings')) {
 		public $event_socket_password;
 
 		/**
-		 * Called when the object is created
+		 * called when the object is created
 		 */
 		public function __construct() {
-
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 		}
 
 		/**
@@ -210,8 +212,7 @@ if (!class_exists('switch_settings')) {
 			//get an array of the default settings
 				$sql = "select * from v_default_settings ";
 				$sql .= "where default_setting_category = 'switch' ";
-				$database = new database;
-				$default_settings = $database->select($sql, null, 'all');
+				$default_settings = $this->database->select($sql, null, 'all');
 				unset($sql);
 
 			//find the missing default settings
@@ -248,14 +249,11 @@ if (!class_exists('switch_settings')) {
 					}
 					if (is_array($array) && @sizeof($array) != 0) {
 						//grant temporary permissions
-							$p = new permissions;
+							$p = permissions::new();
 							$p->add('default_setting_add', 'temp');
 
 						//execute insert
-							$database = new database;
-							$database->app_name = 'switch_settings';
-							$database->app_uuid = '84e91084-a227-43cd-ae99-a0f8ed61eb8b';
-							$database->save($array);
+							$this->database->save($array);
 
 						//revoke temporary permissions
 							$p->delete('default_setting_add', 'temp');
@@ -276,6 +274,3 @@ if (!class_exists('switch_settings')) {
 				unset($array);
 		}
 	}
-}
-
-?>

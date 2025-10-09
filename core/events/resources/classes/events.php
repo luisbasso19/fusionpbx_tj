@@ -2,9 +2,6 @@
 
 /**
  * events class provides an event system
- *
- * @method void load_plugins
- * @method dynamic __call
  */
 class events {
 
@@ -31,11 +28,7 @@ class events {
 		//create the database connection
 
 			//includes files
-			require_once dirname(__DIR__, 4) . "/resources/require.php";
-
-			//includes files
-			require_once "resources/classes/database.php";
-			$database = new database;
+			$database = database::new();
 			$database->connect();
 			$this->db = $database->db;
 			return $this->db = $database->db;
@@ -118,7 +111,7 @@ class events {
 	 * @return boolean $value
 	 */
 	public function check_required($category) {
-		foreach ($this->required['headers'] as &$header) {
+		foreach ($this->required['headers'] as $header) {
 			if ($category == $header) {
 				return true;
 			}
@@ -131,7 +124,7 @@ class events {
 	 */
 	public function send() {
 		//check for required headers are present return false if any are missing
-			foreach ($this->headers as &$header) {
+			foreach ($this->headers as $header) {
 				if (!$this->check_required($header)) {
 					return false;
 				}

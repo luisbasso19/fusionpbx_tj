@@ -29,10 +29,7 @@
 	require_once "resources/check_auth.php";
 
 //check permissions
-	if (permission_exists('user_view')) {
-		//access granted
-	}
-	else {
+	if (!permission_exists('user_view')) {
 		echo "access denied";
 		exit;
 	}
@@ -50,7 +47,6 @@
 	$sql = "select * from view_users ";
 	$sql .= "where domain_uuid = :domain_uuid ";
 	$parameters = null;
-	$database = new database;
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	$row = $database->select($sql, $parameters, 'row');
 	if (isset($row['contact_organization'])) {
@@ -93,7 +89,6 @@
 	$parameters['group_level'] = $_SESSION['user']['group_level'];
 	$sql .= order_by($order_by, $order, 'username', 'asc');
 	$sql .= "limit 300\n";
-	$database = new database;
 	$users = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 

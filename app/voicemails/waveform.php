@@ -27,7 +27,6 @@
 //includes files
 	require_once dirname(__DIR__, 2) . "/resources/require.php";
 	require_once "resources/check_auth.php";
-	require_once "resources/classes/waveform.php";
 
 	use maximal\audio\Waveform;
 
@@ -85,7 +84,6 @@
 						$parameters['voicemail_uuid'] = $voicemail_uuid;
 						$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 						$parameters['voicemail_message_uuid'] = $_GET['id'];
-						$database = new database;
 						$message_base64 = $database->select($sql, $parameters, 'column');
 						if (!empty($message_base64)) {
 							$message_decoded = base64_decode($message_base64);
@@ -110,10 +108,28 @@
 
 					//prepare full file path
 					if (file_exists($path.'/waveform_'.$_GET['id'].'_'.$rand.'.wav')) {
+						$file_ext = 'wav';
 						$full_file_path = $path.'/waveform_'.$_GET['id'].'_'.$rand.'.wav';
 					}
 					else if (file_exists($path.'/waveform_'.$_GET['id'].'_'.$rand.'.mp3')) {
+						$file_ext = 'mp3';
 						$full_file_path = $path.'/waveform_'.$_GET['id'].'_'.$rand.'.mp3';
+					}
+					else {
+						if (file_exists($path.'/msg_'.$_GET['id'].'.wav')) {
+							copy($path.'/msg_'.$_GET['id'].'.wav', $path.'/waveform_'.$_GET['id'].'_'.$rand.'.wav');
+							if (file_exists($path.'/waveform_'.$_GET['id'].'_'.$rand.'.wav')) {
+								$file_ext = 'wav';
+								$full_file_path = $path.'/waveform_'.$_GET['id'].'_'.$rand.'.wav';
+							}
+						}
+						else if (file_exists($path.'/msg_'.$_GET['id'].'.mp3')) {
+							copy($path.'/msg_'.$_GET['id'].'.mp3', $path.'/waveform_'.$_GET['id'].'_'.$rand.'.mp3');
+							if (file_exists($path.'/waveform_'.$_GET['id'].'_'.$rand.'.mp3')) {
+								$file_ext = 'mp3';
+								$full_file_path = $path.'/waveform_'.$_GET['id'].'_'.$rand.'.mp3';
+							}
+						}
 					}
 
 				}
@@ -156,7 +172,6 @@
 				$sql .= "and voicemail_id = :voicemail_id ";
 				$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 				$parameters['voicemail_id'] = $voicemail_id;
-				$database = new database;
 				$selected_greeting_id = $database->select($sql, $parameters, 'column');
 				unset($sql, $parameters);
 
@@ -170,7 +185,6 @@
 				$sql .= "and voicemail_greeting_uuid = :voicemail_greeting_uuid ";
 				$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 				$parameters['voicemail_greeting_uuid'] = $voicemail_greeting_uuid;
-				$database = new database;
 				$row = $database->select($sql, $parameters, 'row');
 				if (!empty($row) && is_array($row) && @sizeof($row) != 0) {
 					$greeting_filename = $row['greeting_filename'];
@@ -207,8 +221,8 @@
 				Waveform::$colorB = !empty($_SESSION['theme']['audio_player_waveform_color_b_leg']['text']) ? color_to_rgba_array($_SESSION['theme']['audio_player_waveform_color_b_leg']['text']) : [0,125,232,0.6]; // array rgba, right (b-leg) wave color
 				Waveform::$backgroundColor = !empty($_SESSION['theme']['audio_player_waveform_color_background']['text']) ? color_to_rgba_array($_SESSION['theme']['audio_player_waveform_color_background']['text']) : [0,0,0,0]; // array rgba, default: transparent
 				Waveform::$axisColor = !empty($_SESSION['theme']['audio_player_waveform_color_axis']['text']) ? color_to_rgba_array($_SESSION['theme']['audio_player_waveform_color_axis']['text']) : [0,0,0,0.3]; // array rgba
-				Waveform::$singlePhase = empty($_SESSION['theme']['audio_player_waveform_single_phase']['boolean']) || $_SESSION['theme']['audio_player_waveform_single_phase']['boolean'] !== 'true' ? false : true; // positive phase only - left (a-leg) top, right (b-leg) bottom
-				Waveform::$singleAxis = empty($_SESSION['theme']['audio_player_waveform_single_axis']['boolean']) || $_SESSION['theme']['audio_player_waveform_single_axis']['boolean'] !== 'false' ? true : false; // combine channels into single axis
+				Waveform::$singlePhase = filter_var($_SESSION['theme']['audio_player_waveform_single_phase']['boolean'] ?? false, FILTER_VALIDATE_BOOL) ? 'true': 'false'; // positive phase only - left (a-leg) top, right (b-leg) bottom
+				Waveform::$singleAxis = filter_var($_SESSION['theme']['audio_player_waveform_single_axis']['boolean'] ?? true, FILTER_VALIDATE_BOOL) ? 'true': 'false'; // combine channels into single axis
 				$height = !empty($_SESSION['theme']['audio_player_waveform_height']['text']) && is_numeric(str_replace('px','',$_SESSION['theme']['audio_player_waveform_height']['text'])) ? 2.2 * (int) str_replace('px','',$_SESSION['theme']['audio_player_waveform_height']['text']) : null;
 				$wf = $waveform->getWaveform($temp_filename, 1600, $height ?? 180); // input: png filename returns boolean true/false, or 'base64' returns base64 string
 			}
@@ -239,7 +253,7 @@
 		switch ($_GET['type']) {
 
 			case 'message':
-				if (!empty($_SESSION['voicemail']['storage_type']['text']) && $_SESSION['voicemail']['storage_type']['text'] == 'base64') {
+				if (file_exists($path.'/waveform_'.$_GET['id'].'_'.$rand.'.'.$file_ext)) {
 					@unlink($path.'/waveform_'.$_GET['id'].'_'.$rand.'.'.$file_ext);
 				}
 				break;
