@@ -62,12 +62,25 @@
 	sounds_dir = session:getVariable("sounds_dir");
 	sounds_dir = sounds_dir.."/"..default_language.."/"..default_dialect.."/"..default_voice;
 
+	if (agent_id == nil) then
+		freeswitch.consoleLog("notice", "TESTE [user status][login] agent id: NIL\n");
+	end
+
+	if (agent_password == nil) then
+		freeswitch.consoleLog("notice", "TESTE [user status][login] agent password: NIL\n");
+	end
+	if (agent_name == nil) then
+		freeswitch.consoleLog("notice", "TESTE [user status][login] agent name: NIL\n");
+	end
+
 	--get the agent_id from the caller
 	if (agent_id == nil and agent_name == nil) then
+		freeswitch.consoleLog("notice", "TESTE [user status][login] ENTROU NA SOLICITACAO DE GAENT_ID\n");
 		min_digits = 2;
 		max_digits = 20;
 		max_tries = 3;
 		agent_id = session:playAndGetDigits(min_digits, max_digits, max_tries, digit_timeout, "#", "phrase:voicemail_enter_id:#", "", "\\d+");
+		--agent_id = session:playAndGetDigits(min_digits, max_digits, max_tries, digit_timeout, "#", "/usr/share/freeswitch/sounds/pt/BR/karina/voicemail/8000/vm-enter_id.wav", "", "\\d+");
 	end
 
 	--get the pin number from the caller
@@ -76,6 +89,7 @@
 		max_digits = 20;
 		max_tries = 3;
 		agent_password = session:playAndGetDigits(min_digits, max_digits, max_tries, digit_timeout, "#", "phrase:voicemail_enter_pass:#", "", "\\d+");
+		--agent_password = session:playAndGetDigits(min_digits, max_digits, max_tries, digit_timeout, "#", "/usr/share/freeswitch/sounds/pt/BR/karina/voicemail/8000/vm-enter_pass.wav", "", "\\d+");
 	end
 
 	--get the agent password
@@ -241,6 +255,7 @@
 			);
 		end
 	end
+
 
 	--unauthorized
 	if (agent_authorized == 'false') then
