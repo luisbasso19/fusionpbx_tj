@@ -135,7 +135,9 @@
 	missed_call_app = env:getHeader("missed_call_app") or '';
 	missed_call_data = env:getHeader("missed_call_data") or '';
 	call_direction = env:getHeader("call_direction") or '';
-
+--TJPR UPDATE 02-09-2025
+	call_group = env:getHeader("call_group");
+--FIM UPDATE 02-09-2025
 -- get the Caller ID
 	caller_id_name = env:getHeader("caller_id_name");
 	caller_id_number = env:getHeader("caller_id_number");
@@ -150,10 +152,25 @@
 	end
 
 --show the logs
+--
+--TJPR UPDATE
+	--freeswitch.consoleLog("INFO", "TJPR - DEBUG CAPTURA.: " .. tostring(call_group) .. "\n")
+	if call_group ~= nil then
+		--local cmd = "db select/"..domain_name.."-captura/"..call_group
+		local call_uuid_call_group = api:executeString("db select/"..domain_name.."-captura/"..call_group)
+		if call_uuid_call_group == uuid then
+			--freeswitch.consoleLog("INFO", "TJPR - DEBUG CAPTURA.: " .. tostring(call_group) .. "\n")
+			--freeswitch.consoleLog("INFO", "TJPR - DEBUG CAPTURA.: " .. tostring(call_uuid_call_group) .. "\n")
+			api:executeString("db delete/"..domain_name.."-captura/"..call_group)
+
+		end
+	end
+--TJPR UPDATE
 	if (debug["info"] == true) then
 		freeswitch.consoleLog("INFO", "[hangup] originate_causes: " .. tostring(originate_causes) .. "\n");
 		freeswitch.consoleLog("INFO", "[hangup] originate_disposition: " .. tostring(originate_disposition) .. "\n");
 	end
+
 
 --handle originate disposition
 	if (originate_disposition ~= nil) then
