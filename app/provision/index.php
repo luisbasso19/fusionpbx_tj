@@ -308,23 +308,33 @@
 	if (!empty($_SESSION['provision']["cidr"]["text"])) {
 		$_SESSION['provision']["cidr"][] = $_SESSION['provision']["cidr"]["text"];
 	}
-
+	//TJPR UPDATE
+	$cidrwhitelist = false;
+	//TJPR UPDATE
 //check the cidr range
 	if (!empty($_SESSION['provision']["cidr"]) && is_array($_SESSION['provision']["cidr"])) {
 		$found = false;
 		foreach($_SESSION['provision']["cidr"] as $cidr) {
 			if (check_cidr($cidr, $_SERVER['REMOTE_ADDR'])) {
 				$found = true;
+				//TJPR UPDATE
+				$cidrwhitelist = true;				
+				//TJPR UPDATE
+
 				break;
 			}
 		}
-		if (!$found) {
-			syslog(LOG_WARNING, '['.$_SERVER['REMOTE_ADDR']."] provision attempt but failed CIDR check for ".escape($_REQUEST['mac']));
-			http_error('404');
-		}
+		//if (!$found) {
+		//	syslog(LOG_WARNING, '['.$_SERVER['REMOTE_ADDR']."] provision attempt but failed CIDR check for ".escape($_REQUEST['mac']));
+		//	http_error('404');
+		//}
 	}
 
-//http authentication - digest
+	//http authentication - digest
+//TJPR UPDATE
+	if ($cidrwhitelist === false) {
+//TJPR UPDATE
+
 	if (!empty($provision["http_auth_username"]) && empty($provision["http_auth_type"])) { $provision["http_auth_type"] = "digest"; }
 	if (!empty($provision["http_auth_username"]) && $provision["http_auth_type"] === "digest" && !empty($provision["http_auth_enabled"]) && $provision["http_auth_enabled"] === "true") {
 		//function to parse the http auth header
@@ -444,7 +454,9 @@
 			return;
 		}
 	}
-
+	//TJPR UPDATE
+	}
+	//TJPR UPDATE
 //output template to string for header processing
 	$prov = new provision;
 	$prov->domain_uuid = $domain_uuid;
