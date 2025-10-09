@@ -438,7 +438,9 @@
 				'USER_NOT_REGISTERED',
 				'SYSTEM_SHUTDOWN',
 				'MANDATORY_IE_MISSING',
-				'REQUESTED_CHAN_UNAVAIL'
+				'REQUESTED_CHAN_UNAVAIL',
+				'SWITCH_CONGESTION',
+				'INTERWORKING'
 				);
 			sort($cdr_status_options);
 			foreach ($cdr_status_options as $cdr_status) {
