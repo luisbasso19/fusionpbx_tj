@@ -100,9 +100,8 @@
 			--check to see if the call should be blocked
 				sql = "select * from v_call_block\n";
 				sql = sql .. "where (domain_uuid = :domain_uuid or domain_uuid is null) \n";
-				sql = sql .. "and call_block_enabled = true \n";
+				sql = sql .. "and call_block_enabled = 'true' \n";
 				sql = sql .. "and call_block_direction = :call_block_direction \n";
-				sql = sql .. "and (call_block_name <> '' or call_block_number <> '') \n";
 				sql = sql .. "and ( \n";
 				sql = sql .. "	(\n";
 				sql = sql .. "		call_block_name = :call_block_name \n";
@@ -118,14 +117,6 @@
 				sql = sql .. "			concat('+', call_block_country_code, call_block_number) = :call_block_number \n";
 				sql = sql .. "			or concat(call_block_country_code, call_block_number) = :call_block_number \n";
 				sql = sql .. "			or call_block_number = :call_block_number \n";
-				sql = sql .. "		) \n";
-				sql = sql .. "	) \n";
-				sql = sql .. "	or (\n";
-				sql = sql .. "		call_block_name is null \n";
-				sql = sql .. "		and ( \n";
-				sql = sql .. "			:call_block_number like concat('+', call_block_country_code, call_block_number, '%') \n";
-				sql = sql .. "			or :call_block_number like concat(call_block_country_code, call_block_number, '%') \n";
-				sql = sql .. "			or :call_block_number like concat(call_block_number, '%') \n";
 				sql = sql .. "		) \n";
 				sql = sql .. "	) \n";
 				sql = sql .. "	or (call_block_name = :call_block_name and call_block_number is null) \n";
@@ -243,13 +234,9 @@
 			--update the call block count
 				if (call_block) then
 					sql = "update v_call_block ";
-					if (call_block_count == nil or call_block_count == '') then
-						sql = sql .. "set call_block_count = '1' ";
-					else
-						sql = sql .. "set call_block_count = call_block_count + 1 ";
-					end
+					sql = sql .. "set call_block_count = :call_block_count ";
 					sql = sql .. "where call_block_uuid = :call_block_uuid ";
-					local params = {call_block_uuid = call_block_uuid};
+					local params = {call_block_uuid = call_block_uuid, call_block_count = #call_block_count + 1};
 					if (debug["sql"]) then
 						freeswitch.consoleLog("notice", "[dialplan] SQL: " .. sql .. "; params:" .. json.encode(params) .. "\n");
 					end
