@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2024
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -42,6 +42,10 @@
 	$language = new text;
 	$text = $language->get();
 
+//initialize database and settings
+	$database = database::new();
+	$settings = new settings(['database' => $database, $_SESSION['domain_uuid'] ?? '', $_SESSION['user_uuid'] ?? '']);
+
 //set the defaults
 	$queue_name = '';
 	$queue_extension = '';
@@ -61,21 +65,38 @@
 		$action = "add";
 	}
 
-//initialize the destinations object
+//get the domain details
+	$domain_uuid = $_SESSION['domain_uuid'];
+	$domain_name = $_SESSION['domain_name'];
+
+//initialize the destination object
 	$destination = new destinations;
+
+//get installed languages
+	$language_paths = glob($settings->get('switch', 'sounds')."/*/*/*");
+	foreach ($language_paths as $key => $path) {
+		$path = str_replace($settings->get('switch', 'sounds').'/', "", $path);
+		$path_array = explode('/', $path);
+		if (count($path_array) <> 3 || strlen($path_array[0]) <> 2 || strlen($path_array[1]) <> 2) {
+			unset($language_paths[$key]);
+		}
+		$language_paths[$key] = str_replace($settings->get('switch', 'sounds')."/","",$language_paths[$key] ?? '');
+		if (empty($language_paths[$key])) {
+			unset($language_paths[$key]);
+		}
+	}
 
 //get total call center queues count from the database, check limit, if defined
 	if ($action == 'add') {
-		if (!empty($_SESSION['limit']['call_center_queues']['numeric'])) {
+		if (!empty($settings->get('limit','call_center_queues', ''))) {
 			$sql = "select count(*) from v_call_center_queues ";
 			$sql .= "where domain_uuid = :domain_uuid ";
-			$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-			$database = new database;
+			$parameters['domain_uuid'] = $domain_uuid;
 			$total_call_center_queues = $database->select($sql, $parameters, 'column');
 			unset($sql, $parameters);
 
-			if ($total_call_center_queues >= $_SESSION['limit']['call_center_queues']['numeric']) {
-				message::add($text['message-maximum_queues'].' '.$_SESSION['limit']['call_center_queues']['numeric'], 'negative');
+			if ($total_call_center_queues >= $settings->get('limit','call_center_queues', 0)) {
+				message::add($text['message-maximum_queues'].' '.$settings->get('limit','call_center_queues', ''), 'negative');
 				header('Location: call_center_queues.php');
 				return;
 			}
@@ -90,6 +111,7 @@
 			$queue_name = $_POST["queue_name"];
 			$queue_extension = $_POST["queue_extension"];
 			$queue_greeting = $_POST["queue_greeting"];
+			$queue_language = $_POST["queue_language"];
 			$queue_strategy = $_POST["queue_strategy"];
 			$call_center_tiers = $_POST["call_center_tiers"];
 			$queue_moh_sound = $_POST["queue_moh_sound"];
@@ -112,7 +134,7 @@
 			$queue_announce_position = $_POST["queue_announce_position"] ?? null;
 			$queue_announce_sound = $_POST["queue_announce_sound"];
 			$queue_announce_frequency = $_POST["queue_announce_frequency"];
-			$queue_cc_exit_keys = $_POST["queue_cc_exit_keys"];
+			$queue_cc_exit_keys = $_POST["queue_cc_exit_keys"] ?? null;
 			$queue_email_address = $_POST["queue_email_address"] ?? null;
 			$queue_description = $_POST["queue_description"];
 
@@ -121,8 +143,14 @@
 				$queue_context = $_POST["queue_context"];
 			}
 			else if ($action == 'add') {
-				$queue_context = $_SESSION['domain_name'];
+				$queue_context = $domain_name;
 			}
+
+		//seperate the language components into language, dialect and voice
+			$language_array = explode("/",$queue_language);
+			$queue_language = $language_array[0] ?? '';
+			$queue_dialect = $language_array[1] ?? '';
+			$queue_voice = $language_array[2] ?? '';
 
 		//remove invalid characters
 			$queue_cid_prefix = str_replace(":", "-", $queue_cid_prefix);
@@ -144,14 +172,13 @@
 			$sql .= "where t.domain_uuid = :domain_uuid  ";
 			$sql .= "and t.call_center_tier_uuid = :call_center_tier_uuid ";
 			$sql .= "and t.call_center_queue_uuid = q.call_center_queue_uuid; ";
-			$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+			$parameters['domain_uuid'] = $domain_uuid;
 			$parameters['call_center_tier_uuid'] = $call_center_tier_uuid;
-			$database = new database;
 			$tiers = $database->select($sql, $parameters, 'all');
 			unset($sql, $parameters);
 
 			if (!empty($tiers)) {
-				foreach ($tiers as &$row) {
+				foreach ($tiers as $row) {
 					$call_center_agent_uuid = $row["call_center_agent_uuid"];
 					$call_center_queue_uuid = $row["call_center_queue_uuid"];
 					$queue_extension = $row["queue_extension"];
@@ -165,7 +192,7 @@
 			if ($esl->is_connected()) {
 				//callcenter_config tier del [queue_name] [agent_name]
 				if (is_numeric($queue_extension) && is_uuid($call_center_agent_uuid)) {
-					$cmd = "callcenter_config tier del ".$queue_extension."@".$_SESSION['domain_name']." ".$call_center_agent_uuid;
+					$cmd = "callcenter_config tier del ".$queue_extension."@".$domain_name." ".$call_center_agent_uuid;
 					$response = event_socket::api($cmd);
 				}
 			}
@@ -173,12 +200,11 @@
 		//delete the tier from the database
 			if (!empty($call_center_tier_uuid)) {
 				$array['call_center_tiers'][0]['call_center_tier_uuid'] = $call_center_tier_uuid;
-				$array['call_center_tiers'][0]['domain_uuid'] = $_SESSION['domain_uuid'];
+				$array['call_center_tiers'][0]['domain_uuid'] = $domain_uuid;
 
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add('call_center_tier_delete', 'temp');
 
-				$database = new database;
 				$database->app_name = 'call_centers';
 				$database->app_uuid = '95788e50-9500-079e-2807-fd530b0ea370';
 				$database->delete($array);
@@ -194,6 +220,24 @@
 		//get the uuid from the POST
 			if ($action == "update") {
 				$call_center_queue_uuid = $_POST["call_center_queue_uuid"];
+			}
+
+		//if the user doesn't have the correct permission then
+		//override domain_uuid and queue_context values
+			if ($action == 'update' && is_uuid($call_center_queue_uuid)) {
+				$sql = "select * from v_call_center_queues ";
+				$sql .= "where call_center_queue_uuid = :call_center_queue_uuid ";
+				$parameters['call_center_queue_uuid'] = $call_center_queue_uuid;
+				$row = $database->select($sql, $parameters, 'row');
+				if (!empty($row)) {
+					//if (!permission_exists('call_center_queue_domain')) {
+					//	$domain_uuid = $row["domain_uuid"];
+					//}
+					if (!permission_exists('call_center_queue_context')) {
+						$queue_context = $row["queue_context"];
+					}
+				}
+				unset($sql, $parameters, $row);
 			}
 
 		//validate the token
@@ -239,9 +283,6 @@
 				return;
 			}
 
-		//set the domain_uuid
-			$_POST["domain_uuid"] = $_SESSION["domain_uuid"];
-
 		//add the call_center_queue_uuid
 			if (empty($_POST["call_center_queue_uuid"])) {
 				$call_center_queue_uuid = uuid();
@@ -260,7 +301,7 @@
 				foreach ($_POST["call_center_tiers"] as $row) {
 					//add the domain_uuid
 						if (empty($row["domain_uuid"])) {
-							$_POST["call_center_tiers"][$x]["domain_uuid"] = $_SESSION['domain_uuid'];
+							$_POST["call_center_tiers"][$x]["domain_uuid"] = $domain_uuid;
 						}
 					//unset ring_group_destination_uuid if the field has no value
 						if (empty($row["call_center_agent_uuid"])) {
@@ -279,8 +320,8 @@
 
 		//add the recording path if needed
 			if (!empty($queue_greeting)) {
-				if (file_exists($_SESSION['switch']['recordings']['dir'].'/'.$_SESSION['domain_name'].'/'.$queue_greeting)) {
-					$queue_greeting_path = $_SESSION['switch']['recordings']['dir'].'/'.$_SESSION['domain_name'].'/'.$queue_greeting;
+				if (file_exists($settings->get('switch','recordings', '').'/'.$domain_name.'/'.$queue_greeting)) {
+					$queue_greeting_path = $settings->get('switch','recordings', '').'/'.$domain_name.'/'.$queue_greeting;
 				}
 				else {
 					$queue_greeting_path = trim($queue_greeting);
@@ -291,9 +332,12 @@
 			$array['call_center_queues'][0]['queue_name'] = $queue_name;
 			$array['call_center_queues'][0]['queue_extension'] = $queue_extension;
 			$array['call_center_queues'][0]['queue_greeting'] = $queue_greeting;
+			$array['call_center_queues'][0]['queue_language'] = $queue_language;
 			$array['call_center_queues'][0]['queue_strategy'] = $queue_strategy;
 			$array['call_center_queues'][0]['queue_moh_sound'] = $queue_moh_sound;
 			$array['call_center_queues'][0]['queue_record_template'] = $queue_record_template;
+			$array['call_center_queues'][0]['queue_dialect'] = $queue_dialect;
+			$array['call_center_queues'][0]['queue_voice'] = $queue_voice;
 			$array['call_center_queues'][0]['queue_time_base_score'] = $queue_time_base_score;
 			$array['call_center_queues'][0]['queue_time_base_score_sec'] = $queue_time_base_score_sec;
 			$array['call_center_queues'][0]['queue_max_wait_time'] = $queue_max_wait_time;
@@ -344,7 +388,7 @@
 						$array['call_center_queues'][0]["call_center_tiers"][$y]["call_center_agent_uuid"] = $row['call_center_agent_uuid'];
 						$array['call_center_queues'][0]["call_center_tiers"][$y]["tier_level"] = $row['tier_level'];
 						$array['call_center_queues'][0]["call_center_tiers"][$y]["tier_position"] = $row['tier_position'];
-						$array['call_center_queues'][0]["call_center_tiers"][$y]["domain_uuid"] = $_SESSION['domain_uuid'];
+						$array['call_center_queues'][0]["call_center_tiers"][$y]["domain_uuid"] = $domain_uuid;
 					}
 					$y++;
 				}
@@ -352,9 +396,9 @@
 
 		//add definable export variables can be set in default settings
 			$export_variables = 'call_center_queue_uuid,sip_h_Alert-Info';
-			if (!empty($_SESSION['call_center']['export_vars'])) {
-				foreach ($_SESSION['call_center']['export_vars'] as $export_variable) {
-				    $export_variables .= ','.$export_variable;
+			if (!empty($settings->get('call_center','export_vars', []))) {
+				foreach ($settings->get('call_center','export_vars', []) as $export_variable) {
+					$export_variables .= ','.$export_variable;
 				}
 			}
 
@@ -393,10 +437,10 @@
 			if (!empty($queue_cid_prefix)) {
 				$dialplan_xml .= "		<action application=\"set\" data=\"effective_caller_id_name=".xml::sanitize($queue_cid_prefix)."#\${caller_id_name}\"/>\n";
 			}
-			if (!empty($queue_cc_exit_keys)) {
+			if ($queue_cc_exit_keys !== null) {
 				$dialplan_xml .= "		<action application=\"set\" data=\"cc_exit_keys=".xml::sanitize($queue_cc_exit_keys)."\"/>\n";
 			}
-			$dialplan_xml .= "		<action application=\"callcenter\" data=\"".xml::sanitize($queue_extension)."@".$_SESSION["domain_name"]."\"/>\n";
+			$dialplan_xml .= "		<action application=\"callcenter\" data=\"".xml::sanitize($queue_extension)."@".$domain_name."\"/>\n";
 			if ($destination->valid($queue_timeout_app.':'.$queue_timeout_data)) {
 				$dialplan_xml .= "		<action application=\"".xml::sanitize($queue_timeout_app)."\" data=\"".xml::sanitize($queue_timeout_data)."\"/>\n";
 			}
@@ -404,27 +448,24 @@
 			$dialplan_xml .= "</extension>\n";
 
 		//build the dialplan array
-			$array['dialplans'][0]["domain_uuid"] = $_SESSION['domain_uuid'];
+			$array['dialplans'][0]["domain_uuid"] = $domain_uuid;
 			$array['dialplans'][0]["dialplan_uuid"] = $dialplan_uuid;
 			$array['dialplans'][0]["dialplan_name"] = $queue_name;
 			$array['dialplans'][0]["dialplan_number"] = $queue_extension;
-			if (isset($queue_context)) {
-				$array['dialplans'][0]["dialplan_context"] = $queue_context;
-			}
+			$array['dialplans'][0]["dialplan_context"] = $queue_context;
 			$array['dialplans'][0]["dialplan_continue"] = "false";
 			$array['dialplans'][0]["dialplan_xml"] = $dialplan_xml;
 			$array['dialplans'][0]["dialplan_order"] = "230";
-			$array['dialplans'][0]["dialplan_enabled"] = "true";
+			$array['dialplans'][0]["dialplan_enabled"] = true;
 			$array['dialplans'][0]["dialplan_description"] = $queue_description;
 			$array['dialplans'][0]["app_uuid"] = "95788e50-9500-079e-2807-fd530b0ea370";
 
 		//add the dialplan permission
-			$p = new permissions;
+			$p = permissions::new();
 			$p->add("dialplan_add", "temp");
 			$p->add("dialplan_edit", "temp");
 
 		//save to the data
-			$database = new database;
 			$database->app_name = 'call_centers';
 			$database->app_uuid = '95788e50-9500-079e-2807-fd530b0ea370';
 			$database->save($array);
@@ -442,7 +483,7 @@
 
 		//clear the cache
 			$cache = new cache;
-			$cache->delete("dialplan:".$_SESSION["domain_name"]);
+			$cache->delete("dialplan:".$domain_name);
 
 		//clear the destinations session array
 			if (isset($_SESSION['destinations']['array'])) {
@@ -481,19 +522,19 @@
 						*/
 						//add the agent
 						if (is_numeric($queue_extension) && is_uuid($call_center_agent_uuid) && is_numeric($tier_level) && is_numeric($tier_position)) {
-							$cmd = "callcenter_config tier add ".$queue_extension."@".$_SESSION["domain_name"]." ".$call_center_agent_uuid." ".$tier_level." ".$tier_position;
+							$cmd = "callcenter_config tier add ".$queue_extension."@".$domain_name." ".$call_center_agent_uuid." ".$tier_level." ".$tier_position;
 							$response = event_socket::api($cmd);
 						}
 						usleep(200);
 						//agent set level
 						if (is_numeric($queue_extension) && is_numeric($tier_level)) {
-							$cmd = "callcenter_config tier set level ".$queue_extension."@".$_SESSION["domain_name"]." ".$call_center_agent_uuid." ".$tier_level;
+							$cmd = "callcenter_config tier set level ".$queue_extension."@".$domain_name." ".$call_center_agent_uuid." ".$tier_level;
 							$response = event_socket::api($cmd);
 						}
 						usleep(200);
 						//agent set position
 						if (is_numeric($queue_extension) && is_numeric($tier_position)) {
-							$cmd = "callcenter_config tier set position ".$queue_extension."@".$_SESSION["domain_name"]." ".$tier_position;
+							$cmd = "callcenter_config tier set position ".$queue_extension."@".$domain_name." ".$tier_position;
 							$response = event_socket::api($cmd);
 						}
 						usleep(200);
@@ -518,22 +559,57 @@
 //pre-populate the form
 	if (!empty($_GET) && is_uuid($_GET["id"]) && empty($_POST["persistformvar"])) {
 		$call_center_queue_uuid = $_GET["id"];
-		$sql = "select * from v_call_center_queues ";
+		$sql = "select ";
+		$sql .= "queue_name, ";
+		$sql .= "dialplan_uuid, ";
+		$sql .= "queue_extension, ";
+		$sql .= "queue_greeting, ";
+		$sql .= "queue_language, ";
+		$sql .= "queue_dialect, ";
+		$sql .= "queue_voice , ";
+		$sql .= "queue_strategy, ";
+		$sql .= "queue_moh_sound, ";
+		$sql .= "queue_record_template, ";
+		$sql .= "queue_time_base_score, ";
+		$sql .= "queue_time_base_score_sec, ";
+		$sql .= "queue_max_wait_time, ";
+		$sql .= "queue_max_wait_time_with_no_agent, ";
+		$sql .= "queue_max_wait_time_with_no_agent_time_reached, ";
+		$sql .= "queue_timeout_action, ";
+		$sql .= "queue_tier_rules_apply, ";
+		$sql .= "queue_tier_rule_wait_second, ";
+		$sql .= "queue_tier_rule_wait_multiply_level, ";
+		$sql .= "queue_tier_rule_no_agent_no_wait, ";
+		$sql .= "queue_discard_abandoned_after, ";
+		$sql .= "queue_abandoned_resume_allowed, ";
+		$sql .= "queue_cid_prefix, ";
+		$sql .= "queue_outbound_caller_id_name, ";
+		$sql .= "queue_outbound_caller_id_number, ";
+		$sql .= "queue_announce_position, ";
+		$sql .= "queue_announce_sound, ";
+		$sql .= "queue_announce_frequency, ";
+		$sql .= "queue_cc_exit_keys, ";
+		$sql .= "queue_email_address, ";
+		$sql .= "queue_context, ";
+		$sql .= "queue_description ";
+		$sql .= "from v_call_center_queues ";
 		$sql .= "where domain_uuid = :domain_uuid ";
 		$sql .= "and call_center_queue_uuid = :call_center_queue_uuid ";
-		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		$parameters['domain_uuid'] = $domain_uuid;
 		$parameters['call_center_queue_uuid'] = $call_center_queue_uuid;
-		$database = new database;
 		$call_center_queues = $database->select($sql, $parameters, 'all');
 		unset($sql, $parameters);
 
 		if (!empty($call_center_queues)) {
-			foreach ($call_center_queues as &$row) {
+			foreach ($call_center_queues as $row) {
 				$queue_name = $row["queue_name"];
 				$dialplan_uuid = $row["dialplan_uuid"];
 				$database_queue_name = $row["queue_name"];
 				$queue_extension = $row["queue_extension"];
 				$queue_greeting = $row["queue_greeting"];
+				$queue_language = $row["queue_language"];
+				$queue_dialect = $row["queue_dialect"];
+				$queue_voice = $row["queue_voice"];
 				$queue_strategy = $row["queue_strategy"];
 				$queue_moh_sound = $row["queue_moh_sound"];
 				$queue_record_template = $row["queue_record_template"];
@@ -570,19 +646,18 @@
 	$sql .= "and t.call_center_agent_uuid = a.call_center_agent_uuid ";
 	$sql .= "and t.domain_uuid = :domain_uuid ";
 	$sql .= "order by tier_level asc, tier_position asc, a.agent_name asc";
-	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+	$parameters['domain_uuid'] = $domain_uuid;
 	$parameters['call_center_queue_uuid'] = $call_center_queue_uuid ?? null;
-	$database = new database;
 	$tiers = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
 //add an empty row to the tiers array
 	if (count($tiers) == 0) {
-		$rows = $_SESSION['call_center']['agent_add_rows']['numeric'] ?? null;
+		$rows = $settings->get('call_center','agent_add_rows', null);
 		$id = 0;
 	}
 	if (count($tiers) > 0) {
-		$rows = $_SESSION['call_center']['agent_edit_rows']['numeric'];
+		$rows = $settings->get('call_center','agent_edit_rows', null);
 		$id = count($tiers)+1;
 	}
 	for ($x = 0; $x < $rows; $x++) {
@@ -599,8 +674,7 @@
 	$sql = "select call_center_agent_uuid, agent_name from v_call_center_agents ";
 	$sql .= "where domain_uuid = :domain_uuid ";
 	$sql .= "order by agent_name asc";
-	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	$database = new database;
+	$parameters['domain_uuid'] = $domain_uuid;
 	$agents = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
@@ -609,6 +683,7 @@
 	$audio_files[0] = $sounds->get();
 	unset($sounds);
 
+//get the list of sounds
 	if (permission_exists('call_center_announce_sound')) {
 		$sounds = new sounds;
 		$sounds->sound_types = ['recordings'];
@@ -621,17 +696,17 @@
 	if (empty($queue_strategy)) { $queue_strategy = "longest-idle-agent"; }
 	if (empty($queue_moh_sound)) { $queue_moh_sound = "\$\${hold_music}"; }
 	if (empty($queue_time_base_score)) { $queue_time_base_score = "system"; }
-	if (empty($queue_time_base_score)) { $queue_time_base_score = ""; }
 	if (empty($queue_max_wait_time)) { $queue_max_wait_time = "0"; }
 	if (empty($queue_max_wait_time_with_no_agent)) { $queue_max_wait_time_with_no_agent = "90"; }
 	if (empty($queue_max_wait_time_with_no_agent_time_reached)) { $queue_max_wait_time_with_no_agent_time_reached = "30"; }
-	if (empty($queue_tier_rules_apply)) { $queue_tier_rules_apply = "false"; }
 	if (empty($queue_tier_rule_wait_second)) { $queue_tier_rule_wait_second = "30"; }
-	if (empty($queue_tier_rule_wait_multiply_level)) { $queue_tier_rule_wait_multiply_level = "true"; }
-	if (empty($queue_tier_rule_no_agent_no_wait)) { $queue_tier_rule_no_agent_no_wait = "true"; }
 	if (empty($queue_discard_abandoned_after)) { $queue_discard_abandoned_after = "900"; }
-	if (empty($queue_abandoned_resume_allowed)) { $queue_abandoned_resume_allowed = "false"; }
-	if (empty($queue_context)) { $queue_context = $_SESSION['domain_name']; }
+	if (empty($queue_context)) { $queue_context = $domain_name; }
+	if ($queue_record_template === null) { $queue_record_template = 'false'; }
+	if ($queue_tier_rules_apply === null) { $queue_tier_rules_apply = false; }
+	if ($queue_tier_rule_wait_multiply_level === null) { $queue_tier_rule_wait_multiply_level = true; }
+	if ($queue_tier_rule_no_agent_no_wait === null) { $queue_tier_rule_no_agent_no_wait = true; }
+	if ($queue_abandoned_resume_allowed === null) { $queue_abandoned_resume_allowed = false; }
 
 //create token
 	$object = new token;
@@ -652,12 +727,8 @@
 	}
 
 //set the record_template
-	if (empty($_SESSION['call_center']['record_name']['text'])) {
-		$record_template = $_SESSION['switch']['recordings']['dir']."/".$_SESSION['domain_name']."/archive/\${strftime(%Y)}/\${strftime(%b)}/\${strftime(%d)}/\${uuid}.\${record_ext}";
-	}
-	else {
-		$record_template = $_SESSION['switch']['recordings']['dir']."/".$_SESSION['domain_name']."/archive/".$_SESSION['call_center']['record_name']['text'];
-	}
+	$record_template = $settings->get('switch','recordings', '')."/".$domain_name."/archive/";
+	$record_template .= $settings->get('call_center','record_name', "\${strftime(%Y)}/\${strftime(%b)}/\${strftime(%d)}/\${uuid}.\${record_ext}");
 
 //show the content
 	if (permission_exists('recording_play') || permission_exists('recording_download')) {
@@ -742,22 +813,23 @@
 	}
 	echo 	"</div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'call_center_queues.php']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme','button_icon_back', ''),'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'call_center_queues.php']);
 
 	if ($action == "update") {
 		if (permission_exists('call_center_wallboard')) {
 			echo button::create(['type'=>'button','label'=>$text['button-wallboard'],'icon'=>'th','link'=>PROJECT_PATH.'/app/call_center_wallboard/call_center_wallboard.php?queue_name='.urlencode($call_center_queue_uuid)]);
 		}
-		//echo button::create(['type'=>'button','label'=>$text['button-stop'],'icon'=>$_SESSION['theme']['button_icon_stop'],'link'=>'cmd.php?cmd=unload&id='.urlencode($call_center_queue_uuid)]);
-		//echo button::create(['type'=>'button','label'=>$text['button-start'],'icon'=>$_SESSION['theme']['button_icon_start'],'link'=>'cmd.php?cmd=load&id='.urlencode($call_center_queue_uuid)]);
-		echo button::create(['type'=>'button','label'=>$text['button-reload'],'icon'=>$_SESSION['theme']['button_icon_reload'],'link'=>'cmd.php?cmd=reload&id='.urlencode($call_center_queue_uuid)]);
-		echo button::create(['type'=>'button','label'=>$text['button-view'],'icon'=>$_SESSION['theme']['button_icon_view'],'style'=>'margin-right: 15px;','link'=>PROJECT_PATH.'/app/call_center_active/call_center_active.php?queue_name='.urlencode($call_center_queue_uuid)]);
+		//echo button::create(['type'=>'button','label'=>$text['button-stop'],'icon'=>$settings->get('theme', 'button_icon_stop'),'link'=>'cmd.php?cmd=unload&id='.urlencode($call_center_queue_uuid)]);
+		//echo button::create(['type'=>'button','label'=>$text['button-start'],'icon'=>$settings->get('theme', 'button_icon_start'),'link'=>'cmd.php?cmd=load&id='.urlencode($call_center_queue_uuid)]);
+		echo button::create(['type'=>'button','label'=>$text['button-reload'],'icon'=>$settings->get('theme','button_icon_reload', ''),'link'=>'cmd.php?cmd=reload&id='.urlencode($call_center_queue_uuid)]);
+		echo button::create(['type'=>'button','label'=>$text['button-view'],'icon'=>$settings->get('theme','button_icon_view', ''),'style'=>'margin-right: 15px;','link'=>PROJECT_PATH.'/app/call_center_active/call_center_active.php?queue_name='.urlencode($call_center_queue_uuid)]);
 	}
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save']);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme','button_icon_save', ''),'id'=>'btn_save']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 	echo "<tr>\n";
 	echo "<td width='30%' class='vncellreq' valign='top' align='left' nowrap>\n";
@@ -775,7 +847,7 @@
 	echo "	".$text['label-extension']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "	<input class='formfld' type='number' name='queue_extension' maxlength='255' min='0' step='1' value=\"".escape($queue_extension)."\" required='required'>\n";
+	echo "	<input class='formfld' type='number' name='queue_extension' maxlength='255' min='0' step='1' value=\"".escape($queue_extension)."\" required='required' placeholder=\"".$settings->get('call_center','extension_range', '')."\">\n";
 	echo "<br />\n";
 	echo $text['description-extension']."\n";
 	echo "</td>\n";
@@ -802,8 +874,8 @@
 				if ($key == 'recordings') {
 					if (
 						!empty($instance_value) &&
-						($instance_value == $row["value"] || $instance_value == $_SESSION['switch']['recordings']['dir']."/".$_SESSION['domain_name'].'/'.$row["value"]) &&
-						file_exists($_SESSION['switch']['recordings']['dir']."/".$_SESSION['domain_name'].'/'.pathinfo($row["value"], PATHINFO_BASENAME))
+						($instance_value == $row["value"] || $instance_value == $settings->get('switch','recordings', '')."/".$domain_name.'/'.$row["value"]) &&
+						file_exists($settings->get('switch','recordings', '')."/".$domain_name.'/'.pathinfo($row["value"], PATHINFO_BASENAME))
 						) {
 						$selected = "selected='selected'";
 						$playable = '../recordings/recordings.php?action=download&type=rec&filename='.pathinfo($row["value"], PATHINFO_BASENAME);
@@ -846,11 +918,39 @@
 			case 'ogg' : $mime_type = 'audio/ogg'; break;
 		}
 		echo "<audio id='recording_audio_".$instance_id."' style='display: none;' preload='none' ontimeupdate=\"update_progress('".$instance_id."')\" onended=\"recording_reset('".$instance_id."');\" src='".($playable ?? '')."' type='".($mime_type ?? '')."'></audio>";
-		echo button::create(['type'=>'button','title'=>$text['label-play'].' / '.$text['label-pause'],'icon'=>$_SESSION['theme']['button_icon_play'],'id'=>'recording_button_'.$instance_id,'style'=>'display: '.(!empty($mime_type) ? 'inline' : 'none'),'onclick'=>"recording_play('".$instance_id."', document.getElementById('".$instance_id."').value, document.getElementById('".$instance_id."').options[document.getElementById('".$instance_id."').selectedIndex].parentNode.getAttribute('data-type'))"]);
+		echo button::create(['type'=>'button','title'=>$text['label-play'].' / '.$text['label-pause'],'icon'=>$settings->get('theme','button_icon_play', ''),'id'=>'recording_button_'.$instance_id,'style'=>'display: '.(!empty($mime_type) ? 'inline' : 'none'),'onclick'=>"recording_play('".$instance_id."', document.getElementById('".$instance_id."').value, document.getElementById('".$instance_id."').options[document.getElementById('".$instance_id."').selectedIndex].parentNode.getAttribute('data-type'))"]);
 		unset($playable, $mime_type);
 	}
 	echo "<br />\n";
 	echo $text['description-'.$instance_label]."\n";
+	echo "</td>\n";
+	echo "</tr>\n";
+
+	echo "<tr>\n";
+	echo "<td class='vncell' valign='top' align='left' nowrap>\n";
+	echo "	".$text['label-language']."\n";
+	echo "</td>\n";
+	echo "<td class='vtable' align='left'>\n";
+	echo "  <select class='formfld' type='text' name='queue_language'>\n";
+	echo "		<option></option>\n";
+	if (!empty($queue_language) && !empty($queue_dialect) && !empty($queue_voice)) {
+		$language_formatted = $queue_language."-".$queue_dialect." ".$queue_voice;
+		echo "		<option value='".escape($queue_language.'/'.$queue_dialect.'/'.$queue_voice)."' selected='selected'>".escape($language_formatted)."</option>\n";
+	}
+	if (!empty($language_paths)) {
+		foreach ($language_paths as $key => $language_variables) {
+			$language_variables = explode('/',$language_paths[$key]);
+			$language = $language_variables[0];
+			$dialect = $language_variables[1];
+			$voice = $language_variables[2];
+			if (empty($language_formatted) || $language_formatted != $language.'-'.$dialect.' '.$voice) {
+				echo "		<option value='".$language."/".$dialect."/".$voice."'>".$language."-".$dialect." ".$voice."</option>\n";
+			}
+		}
+	}
+	echo "  </select>\n";
+	echo "<br />\n";
+	echo $text['description-language']."\n";
 	echo "</td>\n";
 	echo "</tr>\n";
 
@@ -1011,20 +1111,17 @@
 	echo "	".$text['label-record_template']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "	<select class='formfld' name='queue_record_template'>\n";
-	if (!empty($queue_record_template)) {
-		echo "	<option value='".escape($record_template)."' selected='selected' >".$text['option-true']."</option>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<option value='".escape($record_template)."'>".$text['option-true']."</option>\n";
+	echo "		<select class='formfld' id='queue_record_template' name='queue_record_template'>\n";
+	echo "			<option value='true' ".($queue_record_template === 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "			<option value='false' ".($queue_record_template === 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
-	if (empty($queue_record_template)) {
-		echo "	<option value='' selected='selected' >".$text['option-false']."</option>\n";
-	}
-	else {
-		echo "	<option value=''>".$text['option-false']."</option>\n";
-	}
-	echo "	</select>\n";
 	echo "<br />\n";
 	echo $text['description-record_template']."\n";
 	echo "</td>\n";
@@ -1114,20 +1211,17 @@
 	echo "	".$text['label-tier_rules_apply']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "	<select class='formfld' name='queue_tier_rules_apply'>\n";
-	if ($queue_tier_rules_apply == "true") {
-		echo "	<option value='true' selected='selected' >".$text['option-true']."</option>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<option value='true'>".$text['option-true']."</option>\n";
+	echo "		<select class='formfld' id='queue_tier_rules_apply' name='queue_tier_rules_apply'>\n";
+	echo "			<option value='true' ".($queue_tier_rules_apply === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "			<option value='false' ".($queue_tier_rules_apply === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
-	if ($queue_tier_rules_apply == "false") {
-		echo "	<option value='false' selected='selected' >".$text['option-false']."</option>\n";
-	}
-	else {
-		echo "	<option value='false'>".$text['option-false']."</option>\n";
-	}
-	echo "	</select>\n";
 	echo "<br />\n";
 	echo $text['description-tier_rules_apply']."\n";
 	echo "</td>\n";
@@ -1149,20 +1243,17 @@
 	echo "	".$text['label-tier_rule_wait_multiply_level']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "	<select class='formfld' name='queue_tier_rule_wait_multiply_level'>\n";
-	if ($queue_tier_rule_wait_multiply_level == "true") {
-		echo "	<option value='true' selected='selected' >".$text['option-true']."</option>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<option value='true'>".$text['option-true']."</option>\n";
+	echo "		<select class='formfld' id='queue_tier_rule_wait_multiply_level' name='queue_tier_rule_wait_multiply_level'>\n";
+	echo "			<option value='true' ".($queue_tier_rule_wait_multiply_level === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "			<option value='false' ".($queue_tier_rule_wait_multiply_level === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
-	if ($queue_tier_rule_wait_multiply_level == "false") {
-		echo "	<option value='false' selected='selected' >".$text['option-false']."</option>\n";
-	}
-	else {
-		echo "	<option value='false'>".$text['option-false']."</option>\n";
-	}
-	echo "	</select>\n";
 	echo "<br />\n";
 	echo $text['description-tier_rule_wait_multiply_level']."\n";
 	echo "</td>\n";
@@ -1173,20 +1264,17 @@
 	echo "	".$text['label-tier_rule_no_agent_no_wait']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "	<select class='formfld' name='queue_tier_rule_no_agent_no_wait'>\n";
-	if ($queue_tier_rule_no_agent_no_wait == "true") {
-		echo "	<option value='true' selected='selected' >".$text['option-true']."</option>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<option value='true'>".$text['option-true']."</option>\n";
+	echo "		<select class='formfld' id='queue_tier_rule_no_agent_no_wait' name='queue_tier_rule_no_agent_no_wait'>\n";
+	echo "			<option value='true' ".($queue_tier_rule_no_agent_no_wait === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "			<option value='false' ".($queue_tier_rule_no_agent_no_wait === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
-	if ($queue_tier_rule_no_agent_no_wait == "false") {
-		echo "	<option value='false' selected='selected' >".$text['option-false']."</option>\n";
-	}
-	else {
-		echo "	<option value='false'>".$text['option-false']."</option>\n";
-	}
-	echo "	</select>\n";
 	echo "<br />\n";
 	echo $text['description-tier_rule_no_agent_no_wait']."\n";
 	echo "</td>\n";
@@ -1208,20 +1296,17 @@
 	echo "	".$text['label-abandoned_resume_allowed']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "	<select class='formfld' name='queue_abandoned_resume_allowed'>\n";
-	if ($queue_abandoned_resume_allowed == "false") {
-		echo "	<option value='false' selected='selected' >".$text['option-false']."</option>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<option value='false'>".$text['option-false']."</option>\n";
+	echo "		<select class='formfld' id='queue_abandoned_resume_allowed' name='queue_abandoned_resume_allowed'>\n";
+	echo "			<option value='true' ".($queue_abandoned_resume_allowed === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "			<option value='false' ".($queue_abandoned_resume_allowed === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
-	if ($queue_abandoned_resume_allowed == "true") {
-		echo "	<option value='true' selected='selected' >".$text['option-true']."</option>\n";
-	}
-	else {
-		echo "	<option value='true'>".$text['option-true']."</option>\n";
-	}
-	echo "	</select>\n";
 	echo "<br />\n";
 	echo $text['description-abandoned_resume_allowed']."\n";
 	echo "</td>\n";
@@ -1302,8 +1387,8 @@
 					if ($key == 'recordings') {
 						if (
 							!empty($instance_value) &&
-							($instance_value == $row["value"] || $instance_value == $_SESSION['switch']['recordings']['dir']."/".$_SESSION['domain_name'].'/'.$row["value"]) &&
-							file_exists($_SESSION['switch']['recordings']['dir']."/".$_SESSION['domain_name'].'/'.pathinfo($row["value"], PATHINFO_BASENAME))
+							($instance_value == $row["value"] || $instance_value == $settings->get('switch','recordings', '')."/".$domain_name.'/'.$row["value"]) &&
+							file_exists($settings->get('switch','recordings', '')."/".$domain_name.'/'.pathinfo($row["value"], PATHINFO_BASENAME))
 							) {
 							$selected = "selected='selected'";
 							$playable = '../recordings/recordings.php?action=download&type=rec&filename='.pathinfo($row["value"], PATHINFO_BASENAME);
@@ -1346,7 +1431,7 @@
 				case 'ogg' : $mime_type = 'audio/ogg'; break;
 			}
 			echo "<audio id='recording_audio_".$instance_id."' style='display: none;' preload='none' ontimeupdate=\"update_progress('".$instance_id."')\" onended=\"recording_reset('".$instance_id."');\" src='".($playable ?? '')."' type='".($mime_type ?? '')."'></audio>";
-			echo button::create(['type'=>'button','title'=>$text['label-play'].' / '.$text['label-pause'],'icon'=>$_SESSION['theme']['button_icon_play'],'id'=>'recording_button_'.$instance_id,'style'=>'display: '.(!empty($mime_type) ? 'inline' : 'none'),'onclick'=>"recording_play('".$instance_id."', document.getElementById('".$instance_id."').value, document.getElementById('".$instance_id."').options[document.getElementById('".$instance_id."').selectedIndex].parentNode.getAttribute('data-type'))"]);
+			echo button::create(['type'=>'button','title'=>$text['label-play'].' / '.$text['label-pause'],'icon'=>$settings->get('theme','button_icon_play', ''),'id'=>'recording_button_'.$instance_id,'style'=>'display: '.(!empty($mime_type) ? 'inline' : 'none'),'onclick'=>"recording_play('".$instance_id."', document.getElementById('".$instance_id."').value, document.getElementById('".$instance_id."').options[document.getElementById('".$instance_id."').selectedIndex].parentNode.getAttribute('data-type'))"]);
 			unset($playable, $mime_type);
 		}
 		echo "<br />\n";
@@ -1417,6 +1502,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br><br>";
 
 	if ($action == "update") {

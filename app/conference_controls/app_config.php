@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "ზარის კონტროლი საშუალებას გაძლევთ მიამაგროთ ციფრები ქმედებებზე. ისინი შეგიძლიათ გამოიყენოთ დადუმებისთვის, დადუმების მოხსნისთვის ან სხვა ქმედებებისთვის კონფერენც-ზარის მიმდინარეობისას.";
 		$apps[$x]['description']['nl-nl'] = "Conferentie besturing maakt het mogelijk om functies aan cijfers toe te wijzen zodat een verbinding op stil of spreken gezet kan worden. of andere acties tijden een conferentie zitting.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "";
@@ -84,7 +85,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enter the conference control name.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "control_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Set the stats of the control.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "control_description";
@@ -150,7 +151,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Enter the data.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "control_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Set the status of the control.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "insert_date";

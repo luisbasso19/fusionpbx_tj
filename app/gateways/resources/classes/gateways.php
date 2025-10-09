@@ -25,14 +25,18 @@
 */
 
 //define the gateways class
-if (!class_exists('gateways')) {
 	class gateways {
+
+		/**
+		 * declare constant variables
+		 */
+		const app_name = 'gateways';
+		const app_uuid = '297ab33e-2c2f-8196-552c-f3567d2caaf8';
 
 		/**
 		 * declare private variables
 		 */
-		private $app_name;
-		private $app_uuid;
+		private $database;
 		private $permission_prefix;
 		private $list_page;
 		private $table;
@@ -46,14 +50,17 @@ if (!class_exists('gateways')) {
 		public function __construct() {
 
 			//assign private variables
-				$this->app_name = 'gateways';
-				$this->app_uuid = '297ab33e-2c2f-8196-552c-f3567d2caaf8';
-				$this->permission_prefix = 'gateway_';
-				$this->list_page = 'gateways.php';
-				$this->table = 'gateways';
-				$this->uuid_prefix = 'gateway_';
-				$this->toggle_field = 'enabled';
-				$this->toggle_values = ['true','false'];
+			$this->permission_prefix = 'gateway_';
+			$this->list_page = 'gateways.php';
+			$this->table = 'gateways';
+			$this->uuid_prefix = 'gateway_';
+			$this->toggle_field = 'enabled';
+			$this->toggle_values = ['true','false'];
+
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 
 		}
 
@@ -96,8 +103,7 @@ if (!class_exists('gateways')) {
 									$sql .= "and ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
 									$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 								}
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (!empty($rows) && is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$gateways[$row['uuid']]['name'] = $row['gateway'];
@@ -184,8 +190,7 @@ if (!class_exists('gateways')) {
 									$sql .= "and ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
 									$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 								}
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$gateways[$row['uuid']]['name'] = $row['gateway'];
@@ -262,8 +267,7 @@ if (!class_exists('gateways')) {
 									$sql .= "and ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
 									$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 								}
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (!empty($rows) && is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$gateways[$row['uuid']]['name'] = $row['gateway'];
@@ -308,10 +312,7 @@ if (!class_exists('gateways')) {
 							if (!empty($array) && is_array($array) && @sizeof($array) != 0) {
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//synchronize the xml config
@@ -389,8 +390,7 @@ if (!class_exists('gateways')) {
 									$sql .= "and ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
 									$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 								}
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (!empty($rows) && is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$gateways[$row['uuid']]['state'] = $row['state'];
@@ -413,10 +413,8 @@ if (!class_exists('gateways')) {
 							if (!empty($array) && is_array($array) && @sizeof($array) != 0) {
 
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//update gateway session variables or remove xml files (if necessary)
@@ -515,8 +513,7 @@ if (!class_exists('gateways')) {
 									$sql .= "and ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
 									$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 								}
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (!empty($rows) && is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $x => $row) {
 										$primary_uuid = uuid();
@@ -550,10 +547,8 @@ if (!class_exists('gateways')) {
 							if (!empty($array) && is_array($array) && @sizeof($array) != 0) {
 
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//add new gateways to session variables
@@ -583,6 +578,3 @@ if (!class_exists('gateways')) {
 		}
 
 	}
-}
-
-?>

@@ -66,6 +66,7 @@
 			//echo $e->getMessage();
 		}
 
+		echo "<div class='card'>\n";
 		echo "<table class='list'>\n";
 		echo "<tr class='list-header'>\n";
 		echo "	<th>".$text['label-name']."</th>\n";
@@ -99,7 +100,6 @@
 						$sql .= "left join v_conference_centers as cc on cr.conference_center_uuid = cc.conference_center_uuid ";
 						$sql .= "where cr.conference_room_uuid = :conference_room_uuid ";
 						$parameters['conference_room_uuid'] = $conference_uuid;
-						$database = new database;
 						$conference = $database->select($sql, $parameters, 'row');
 						$conference_name = $conference['conference_room_name'];
 						$conference_extension = $conference['conference_center_extension'];
@@ -119,7 +119,6 @@
 						$sql .= "and conference_extension = :conference_extension ";
 						$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 						$parameters['conference_extension'] = $name_array[0];
-						$database = new database;
 						$conference = $database->select($sql, $parameters, 'row');
 						$conference_name = $conference['conference_name'];
 						$conference_extension = $conference['conference_extension'];
@@ -143,9 +142,9 @@
 					echo "	<td>".escape($conference_extension)."</td>\n";
 					echo "	<td>".escape($participant_pin)."</td>\n";
 					echo "	<td class='center'>".escape($member_count)."</td>\n";
-					if (permission_exists('conference_interactive_view') && !empty($_SESSION['theme']['list_row_edit_button']['boolean']) && $_SESSION['theme']['list_row_edit_button']['boolean'] == 'true') {
+					if (permission_exists('conference_interactive_view') && $settings->get('theme', 'list_row_edit_button', false)) {
 						echo "	<td class='action-button'>";
-						echo button::create(['type'=>'button','title'=>$text['button-view'],'icon'=>$_SESSION['theme']['button_icon_view'],'link'=>$list_row_url]);
+						echo button::create(['type'=>'button','title'=>$text['button-view'],'icon'=>$settings->get('theme', 'button_icon_view'),'link'=>$list_row_url]);
 						echo "	</td>\n";
 					}
 					echo "</tr>\n";
@@ -153,7 +152,10 @@
 				}
 		}
 		echo "</table>\n";
+		echo "</div>\n";
 		echo "<br /><br />";
 	}
 
 ?>
+
+																									

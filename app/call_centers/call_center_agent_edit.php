@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -47,31 +47,6 @@
 	$agent_name = '';
 	$agent_password = '';
 
-//check for duplicates
-	if (!empty($_GET["check"]) && $_GET["check"] == 'duplicate') {
-		//agent id
-			if (!empty($_GET["agent_id"])) {
-				$sql = "select agent_name ";
-				$sql .= "from v_call_center_agents ";
-				$sql .= "where agent_id = :agent_id ";
-				$sql .= "and domain_uuid = :domain_uuid ";
-				if (!empty($_GET["agent_uuid"]) && is_uuid($_GET["agent_uuid"])) {
-					$sql .= " and call_center_agent_uuid <> :call_center_agent_uuid ";
-					$parameters['call_center_agent_uuid'] = $_GET["agent_uuid"];
-				}
-				$parameters['agent_id'] = $_GET["agent_id"];
-				$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-				$database = new database;
-				$row = $database->select($sql, $parameters, 'row');
-				if (!empty($row) && !empty($row['agent_name'])) {
-					echo $text['message-duplicate_agent_id'].(if_group("superadmin") ? ": ".$row["agent_name"] : null);
-				}
-				unset($sql, $parameters);
-			}
-
-		exit;
-	}
-
 //action add or update
 	if (!empty($_REQUEST["id"]) && is_uuid($_REQUEST["id"])) {
 		$action = "update";
@@ -80,6 +55,14 @@
 	else {
 		$action = "add";
 	}
+
+//get the users array
+	$sql = "select * from v_users ";
+	$sql .= "where domain_uuid = :domain_uuid ";
+	$sql .= "order by username asc ";
+	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+	$users = $database->select($sql, $parameters, 'all');
+	unset($sql, $parameters);
 
 //get http post variables and set them to php variables
 	if (!empty($_POST)) {
@@ -145,20 +128,12 @@
 			if (empty($agent_no_answer_delay_time)) { $agent_no_answer_delay_time = "30"; }
 			if (empty($agent_reject_delay_time)) { $agent_reject_delay_time = "90"; }
 			if (empty($agent_busy_delay_time)) { $agent_busy_delay_time = "90"; }
+			if ($agent_record === null) { $agent_record = false; }
 
 		//add the call_center_agent_uuid
 			if (empty($call_center_agent_uuid)) {
 				$call_center_agent_uuid = uuid();
 			}
-
-		//get the users array
-			$sql = "select * from v_users ";
-			$sql .= "where domain_uuid = :domain_uuid ";
-			$sql .= "order by username asc ";
-			$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-			$database = new database;
-			$users = $database->select($sql, $parameters, 'all');
-			unset($sql, $parameters);
 
 		//change the contact string to loopback - Not recommended added for backwards comptability causes multiple problems
 			if ($_SESSION['call_center']['agent_contact_method']['text'] == 'loopback') {
@@ -193,11 +168,9 @@
 			}
 
 		//save to the data
-			$database = new database;
 			$database->app_name = 'call_center';
 			$database->app_uuid = '95788e50-9500-079e-2807-fd530b0ea370';
 			$database->save($array);
-			//$message = $database->message;
 
 		//syncrhonize configuration
 			save_call_center_xml();
@@ -290,12 +263,27 @@
 //pre-populate the form
 	if (!empty($_GET["id"]) && is_uuid($_GET["id"]) && empty($_POST["persistformvar"])) {
 		$call_center_agent_uuid = $_GET["id"];
-		$sql = "select * from v_call_center_agents ";
+		$sql = "select ";
+		$sql .= "call_center_agent_uuid, ";
+		$sql .= "user_uuid, ";
+		$sql .= "agent_name, ";
+		$sql .= "agent_type, ";
+		$sql .= "agent_call_timeout, ";
+		$sql .= "agent_id, ";
+		$sql .= "agent_password, ";
+		$sql .= "agent_status, ";
+		$sql .= "agent_contact, ";
+		$sql .= "agent_no_answer_delay_time, ";
+		$sql .= "agent_max_no_answer, ";
+		$sql .= "agent_wrap_up_time, ";
+		$sql .= "agent_reject_delay_time, ";
+		$sql .= "agent_busy_delay_time, ";
+		$sql .= "agent_record ";
+		$sql .= "from v_call_center_agents ";
 		$sql .= "where domain_uuid = :domain_uuid ";
 		$sql .= "and call_center_agent_uuid = :call_center_agent_uuid ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 		$parameters['call_center_agent_uuid'] = $call_center_agent_uuid;
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (!empty($row)) {
 			$call_center_agent_uuid = $row["call_center_agent_uuid"];
@@ -326,6 +314,7 @@
 	if (empty($agent_no_answer_delay_time)) { $agent_no_answer_delay_time = "30"; }
 	if (empty($agent_reject_delay_time)) { $agent_reject_delay_time = "90"; }
 	if (empty($agent_busy_delay_time)) { $agent_busy_delay_time = "90"; }
+	if ($agent_record === null) { $agent_record = false; }
 
 //create token
 	$object = new token;
@@ -338,47 +327,12 @@
 	if ($action == "update") {
 		$document['title'] = $text['title-call_center_agent_edit'];
 	}
+
+//include the header
 	require_once "resources/header.php";
 
-//get the list of users for this domain
-	$sql = "select * from v_users ";
-	$sql .= "where domain_uuid = :domain_uuid ";
-	$sql .= "and user_enabled = 'true' ";
-	$sql .= "order by username asc ";
-	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	$database = new database;
-	$users = $database->select($sql, $parameters, 'all');
-	unset($sql, $parameters);
-
-//javascript to check for duplicates
-	?>
-	<script language="javascript">
-		function check_duplicates() {
-			//check agent id
-				var agent_id = document.getElementById('agent_id').value;
-				$("#duplicate_agent_id_response").load("call_center_agent_edit.php?check=duplicate&agent_id="+agent_id+"&agent_uuid=<?php echo escape($call_center_agent_uuid ?? ''); ?>", function() {
-					var duplicate_agent_id = false;
-					if ($("#duplicate_agent_id_response").html() != '') {
-						$('#agent_id').addClass('formfld_highlight_bad');
-						display_message($("#duplicate_agent_id_response").html(), 'negative'<?php if (if_group("superadmin")) { echo ', 3000'; } ?>);
-						duplicate_agent_id = true;
-					}
-					else {
-						$("#duplicate_agent_id_response").html('');
-						$('#agent_id').removeClass('formfld_highlight_bad');
-						duplicate_agent_id = false;
-					}
-
-					if (duplicate_agent_id == false) {
-						document.getElementById('frm').submit();
-					}
-				});
-		}
-	</script>
-
-<?php
 //show the content
-	echo "<form method='post' name='frm' id='frm' onsubmit='check_duplicates(); return false;'>\n";
+	echo "<form method='post' name='frm' id='frm' onsubmit=''>\n";
 
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'>";
@@ -390,12 +344,13 @@
 	}
 	echo 	"</div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','link'=>'call_center_agents.php']);
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','style'=>'margin-left: 15px;']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','link'=>'call_center_agents.php']);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','style'=>'margin-left: 15px;']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 	echo "<tr>\n";
 	echo "<td width='30%' class='vncellreq' valign='top' align='left' nowrap='nowrap'>\n";
@@ -403,21 +358,6 @@
 	echo "</td>\n";
 	echo "<td width='70%' class='vtable' align='left'>\n";
 	echo "	<input class='formfld' type='text' name='agent_name' maxlength='255' value=\"".escape($agent_name)."\" />\n";
-	/*
-	echo "<select id=\"agent_name\" name=\"agent_name\" class='formfld'>\n";
-	echo "<option value=\"\"></option>\n";
-	if (is_array($users)) {
-		foreach($users as $field) {
-			if ($field[username] == $agent_name) {
-				echo "<option value='".escape($field[username])."' selected='selected'>".escape($field[username])."</option>\n";
-			}
-			else {
-				echo "<option value='".escape($field[username])."'>".escape($field[username])."</option>\n";
-			}
-		}
-	}
-	echo "</select>";
-	*/
 	echo "<br />\n";
 	echo $text['description-agent_name']."\n";
 	echo "</td>\n";
@@ -466,7 +406,6 @@
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
 	echo "  <input class='formfld' type='number' name='agent_id' id='agent_id' maxlength='255' min='1' step='1' value='".escape($agent_id)."'>\n";
-	echo "	<div style='display: none;' id='duplicate_agent_id_response'></div>\n";
 	echo "<br />\n";
 	echo $text['description-agent_id']."\n";
 	echo "</td>\n";
@@ -477,7 +416,7 @@
 	echo "	".$text['label-agent_password']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "  <input class='formfld' type='password' name='agent_password' autocomplete='off' onmouseover=\"this.type='text';\" onfocus=\"this.type='text';\" onmouseout=\"if (!\$(this).is(':focus')) { this.type='password'; }\" onblur=\"this.type='password';\" maxlength='255' min='1' step='1' value='".escape($agent_password)."'>\n";
+	echo "  <input class='formfld password' type='password' name='agent_password' autocomplete='off' onmouseover=\"this.type='text';\" onfocus=\"this.type='text';\" onmouseout=\"if (!\$(this).is(':focus')) { this.type='password'; }\" onblur=\"this.type='password';\" maxlength='255' min='1' step='1' value='".escape($agent_password)."'>\n";
 	echo "<br />\n";
 	echo $text['description-agent_password']."\n";
 	echo "</td>\n";
@@ -571,10 +510,17 @@
 	echo "	".$text['label-record_template']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	echo "	<select class='formfld' name='agent_record'>\n";
-	echo "		<option value='true'>".$text['option-true']."</option>\n";
-	echo "		<option value='false' ".(!empty($agent_record) && $agent_record != "true" ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
-	echo "	</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
+	}
+	echo "		<select class='formfld' id='agent_record' name='agent_record'>\n";
+	echo "			<option value='true' ".($agent_record === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "			<option value='false' ".($agent_record === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "		</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
+	}
 	echo "<br />\n";
 	echo $text['description-record_template']."\n";
 	echo "</td>\n";
@@ -594,6 +540,7 @@
 	*/
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br /><br />";
 
 	if ($action == "update") {

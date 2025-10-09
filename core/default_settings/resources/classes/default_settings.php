@@ -26,19 +26,19 @@
 
 /**
  * default_settings class
- *
- * @method null delete
- * @method null toggle
- * @method null copy
  */
-if (!class_exists('default_settings')) {
 	class default_settings {
 
 		/**
-		* declare the variables
+		 * declare constant variables
+		 */
+		const app_name = 'default_settings';
+		const app_uuid = '2c2453c0-1bea-4475-9f44-4d969650de09';
+
+		/**
+		* declare private variables
 		*/
-		private $app_name;
-		private $app_uuid;
+		private $database;
 		private $name;
 		private $table;
 		private $toggle_field;
@@ -51,13 +51,16 @@ if (!class_exists('default_settings')) {
 		 */
 		public function __construct() {
 			//assign the variables
-				$this->app_name = 'default_settings';
-				$this->app_uuid = '2c2453c0-1bea-4475-9f44-4d969650de09';
-				$this->name = 'default_setting';
-				$this->table = 'default_settings';
-				$this->toggle_field = 'default_setting_enabled';
-				$this->toggle_values = ['true','false'];
-				$this->location = 'default_settings.php';
+			$this->name = 'default_setting';
+			$this->table = 'default_settings';
+			$this->toggle_field = 'default_setting_enabled';
+			$this->toggle_values = ['true','false'];
+			$this->location = 'default_settings.php';
+
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 		}
 
 		/**
@@ -95,10 +98,7 @@ if (!class_exists('default_settings')) {
 						//delete the checked rows
 							if (is_array($array) && @sizeof($array) != 0) {
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//set message
@@ -138,8 +138,7 @@ if (!class_exists('default_settings')) {
 							if (is_array($uuids) && @sizeof($uuids) != 0) {
 								$sql = "select ".$this->name."_uuid as uuid, ".$this->toggle_field." as toggle from v_".$this->table." ";
 								$sql .= "where ".$this->name."_uuid in (".implode(', ', $uuids).") ";
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$states[$row['uuid']] = $row['toggle'];
@@ -162,10 +161,8 @@ if (!class_exists('default_settings')) {
 						//save the changes
 							if (is_array($array) && @sizeof($array) != 0) {
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//set message
@@ -213,8 +210,7 @@ if (!class_exists('default_settings')) {
 									$sql = "select * from v_default_settings ";
 									$sql .= "where default_setting_uuid = :default_setting_uuid ";
 									$parameters['default_setting_uuid'] = $uuid;
-									$database = new database;
-									$row = $database->select($sql, $parameters, 'row');
+									$row = $this->database->select($sql, $parameters, 'row');
 									if (is_array($row) && sizeof($row) != 0) {
 										$default_setting_category = $row["default_setting_category"];
 										$default_setting_subcategory = $row["default_setting_subcategory"];
@@ -246,9 +242,8 @@ if (!class_exists('default_settings')) {
 										$parameters['domain_setting_category'] = $default_setting_category;
 										$parameters['domain_setting_subcategory'] = $default_setting_subcategory;
 										$parameters['domain_setting_name'] = $default_setting_name;
-										$database = new database;
-										$target_domain_setting_uuid = $database->select($sql, $parameters, 'column');
-										$message = $database->message;
+										$target_domain_setting_uuid = $this->database->select($sql, $parameters, 'column');
+										$message = $this->database->message;
 
 										$action = is_uuid($target_domain_setting_uuid) ? 'update' : 'add';
 										unset($sql, $parameters);
@@ -277,11 +272,8 @@ if (!class_exists('default_settings')) {
 
 										//execute
 										if (is_uuid($array['domain_settings'][$x]['domain_setting_uuid'])) {
-											$database = new database;
-											$database->app_name = $this->table;
-											$database->app_uuid = $this->app_uuid;
-											$database->save($array);
-											$message = $database->message;
+											$this->database->save($array);
+											$message = $this->database->message;
 											unset($array);
 
 											$settings_copied++;
@@ -303,11 +295,8 @@ if (!class_exists('default_settings')) {
 										unset($array['default_settings'][$x]['update_user']);
 
 										//execute
-										$database = new database;
-										$database->app_name = $this->table;
-										$database->app_uuid = $this->app_uuid;
-										$database->save($array);
-										$message = $database->message;
+										$this->database->save($array);
+										$message = $this->database->message;
 										unset($array);
 
 										$settings_copied++;
@@ -327,6 +316,3 @@ if (!class_exists('default_settings')) {
 		} //method
 
 	} //class
-}
-
-?>

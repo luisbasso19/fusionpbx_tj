@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "Gestion des enregistrements principalement utilisés dans les IVR";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "მართეთ ფრაზები, რომლებიც ძირითადად IVR-ისთვის გამოიყენება.";
 		$apps[$x]['description']['nl-nl'] = "Beheer de uitspraken die vooral bij een IVR gebruikt worden.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "";
@@ -34,7 +35,7 @@
 		$apps[$x]['destinations'][$y]['type'] = "sql";
 		$apps[$x]['destinations'][$y]['label'] = "phrases";
 		$apps[$x]['destinations'][$y]['name'] = "phrases";
-		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and phrase_enabled = 'true' ";
+		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and phrase_enabled = true ";
 		$apps[$x]['destinations'][$y]['order_by'] = "phrase_name asc";
 		$apps[$x]['destinations'][$y]['field']['uuid'] = "phrase_uuid";
 		$apps[$x]['destinations'][$y]['field']['name'] = "phrase_name";
@@ -114,7 +115,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name']['text'] = "phrase_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name']['text'] = "phrase_description";

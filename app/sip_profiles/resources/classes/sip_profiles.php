@@ -25,14 +25,18 @@
 */
 
 //define the sip profiles class
-if (!class_exists('sip_profiles')) {
 	class sip_profiles {
+
+		/**
+		 * declare constant variables
+		 */
+		const app_name = 'sip_profiles';
+		const app_uuid = 'a6a7c4c5-340a-43ce-bcbc-2ed9bab8659d';
 
 		/**
 		 * declare private variables
 		 */
-		private $app_name;
-		private $app_uuid;
+		private $database;
 		private $permission_prefix;
 		private $list_page;
 		private $table;
@@ -51,14 +55,17 @@ if (!class_exists('sip_profiles')) {
 		public function __construct() {
 
 			//assign private variables
-				$this->app_name = 'sip_profiles';
-				$this->app_uuid = 'a6a7c4c5-340a-43ce-bcbc-2ed9bab8659d';
-				$this->permission_prefix = 'sip_profile_';
-				$this->list_page = 'sip_profiles.php';
-				$this->table = 'sip_profiles';
-				$this->uuid_prefix = 'sip_profile_';
-				$this->toggle_field = 'sip_profile_enabled';
-				$this->toggle_values = ['true','false'];
+			$this->permission_prefix = 'sip_profile_';
+			$this->list_page = 'sip_profiles.php';
+			$this->table = 'sip_profiles';
+			$this->uuid_prefix = 'sip_profile_';
+			$this->toggle_field = 'sip_profile_enabled';
+			$this->toggle_values = ['true','false'];
+
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 
 		}
 
@@ -93,8 +100,7 @@ if (!class_exists('sip_profiles')) {
 						//get necessary sip profile details
 							$sql = "select ".$this->uuid_prefix."uuid as uuid, sip_profile_name, sip_profile_hostname from v_".$this->table." ";
 							$sql .= "where ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
-							$database = new database;
-							$rows = $database->select($sql, $parameters ?? null, 'all');
+							$rows = $this->database->select($sql, $parameters ?? null, 'all');
 							if (is_array($rows) && @sizeof($rows) != 0) {
 								foreach ($rows as $row) {
 									$sip_profiles[$row['uuid']]['name'] = $row['sip_profile_name'];
@@ -116,15 +122,12 @@ if (!class_exists('sip_profiles')) {
 							if (is_array($array) && @sizeof($array) != 0) {
 
 								//grant temporary permissions
-									$p = new permissions;
+									$p = permissions::new();
 									$p->add('sip_profile_domain_delete', 'temp');
 									$p->add('sip_profile_setting_delete', 'temp');
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//revoke temporary permissions
@@ -214,8 +217,7 @@ if (!class_exists('sip_profiles')) {
 								$sql = "select sip_profile_hostname from v_sip_profiles ";
 								$sql .= "where sip_profile_uuid = :sip_profile_uuid ";
 								$parameters['sip_profile_uuid'] = $this->sip_profile_uuid;
-								$database = new database;
-								$sip_profile_hostname = $database->select($sql, $parameters, 'column');
+								$sip_profile_hostname = $this->database->select($sql, $parameters, 'column');
 								unset($sql, $parameters);
 							}
 
@@ -223,10 +225,7 @@ if (!class_exists('sip_profiles')) {
 							if (!empty($array) && @sizeof($array) != 0) {
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//save the sip profile xml
@@ -292,8 +291,7 @@ if (!class_exists('sip_profiles')) {
 								$sql = "select sip_profile_hostname from v_sip_profiles ";
 								$sql .= "where sip_profile_uuid = :sip_profile_uuid ";
 								$parameters['sip_profile_uuid'] = $this->sip_profile_uuid;
-								$database = new database;
-								$sip_profile_hostname = $database->select($sql, $parameters, 'column');
+								$sip_profile_hostname = $this->database->select($sql, $parameters, 'column');
 								unset($sql, $parameters);
 							}
 
@@ -301,10 +299,7 @@ if (!class_exists('sip_profiles')) {
 							if (!empty($array) && @sizeof($array) != 0) {
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//save the sip profile xml
@@ -363,8 +358,7 @@ if (!class_exists('sip_profiles')) {
 							if (!empty($uuids) && @sizeof($uuids) != 0) {
 								$sql = "select ".$this->uuid_prefix."uuid as uuid, ".$this->toggle_field." as toggle, sip_profile_hostname from v_".$this->table." ";
 								$sql .= "where ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$sip_profiles[$row['uuid']]['state'] = $row['toggle'];
@@ -386,10 +380,8 @@ if (!class_exists('sip_profiles')) {
 							if (!empty($array) && @sizeof($array) != 0) {
 
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//determine hostnames, get system hostname if necessary
@@ -434,6 +426,3 @@ if (!class_exists('sip_profiles')) {
 		}
 
 	}
-}
-
-?>

@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2022
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -27,6 +27,12 @@
 //includes files
 	require_once __DIR__ . "/require.php";
 
+//database and settings
+	$domain_uuid = $_SESSION['domain_uuid'] ?? '';
+	$user_uuid = $_SESSION['user_uuid'] ?? '';
+	$database = database::new();
+	$settings = new settings(['database' => $database, 'domain_uuid' => $domain_uuid, 'user_uuid' => $user_uuid]);
+
 //set variables if not set
 	//if (!isset($_SESSION["template_content"])) { $_SESSION["template_content"] = null; }
 	if (!isset($document)) { $document = null; }
@@ -34,12 +40,18 @@
 	if (!isset($_SESSION["menu"])) { $_SESSION["menu"] = null; }
 	if (!isset($_SESSION["username"])) { $_SESSION["username"] = null; }
 
+//save the session domains array to a variable of type array
+	$domains = $_SESSION['domains'] ?? [];
+
+//count the number of domains
+	$domain_count = count($domains);
+
 //get the output from the buffer
 	$body = ($content_from_db ?? '').ob_get_contents();
 	ob_end_clean(); //clean the buffer
 
 //clear the template
-	//if (isset($_SESSION['theme']['cache']['boolean']) && $_SESSION['theme']['cache']['boolean'] == "false") {
+	//if (!$settings->get('theme', 'cache', false)) {
 	//	$_SESSION["template_content"] = '';
 	//}
 
@@ -71,7 +83,7 @@
 	$view = new template();
 	$view->engine = 'smarty';
 	$view->template_dir = $_SERVER['DOCUMENT_ROOT'].PROJECT_PATH.'/themes/'.$_SESSION['domain']['template']['name'].'/';
-	$view->cache_dir = $_SESSION['server']['temp']['dir'] ?: sys_get_temp_dir();
+	$view->cache_dir = sys_get_temp_dir();
 	$view->init();
 
 //add multi-lingual support
@@ -89,6 +101,8 @@
 
 //set template variables
 
+	//add self
+		$view->assign('php_self', basename($_SERVER['PHP_SELF']));
 	//add translations
 		foreach($text as $key => $value) {
 			$array[str_replace('-', '_', $key)] = $value;
@@ -152,9 +166,15 @@
 				$settings_array['theme']['menu_style'] = !empty($settings_array['theme']['menu_style']) ? $settings_array['theme']['menu_style'] : 'fixed';
 				$settings_array['theme']['menu_position'] = isset($settings_array['theme']['menu_position']) ? $settings_array['theme']['menu_position'] : 'top';
 				$settings_array['theme']['footer'] = isset($settings_array['theme']['footer']) ? $settings_array['theme']['footer'] : '&copy; '.$text['theme-label-copyright'].' 2008 - '.date('Y')." <a href='http://www.fusionpbx.com' class='footer' target='_blank'>fusionpbx.com</a> ".$text['theme-label-all_rights_reserved'];
-
+				$settings_array['theme']['menu_side_item_main_sub_icon_contract'] = !empty($settings_array['theme']['menu_side_item_main_sub_icon_contract']) ? explode(' ', $settings_array['theme']['menu_side_item_main_sub_icon_contract'])[1] : null;
+				$settings_array['theme']['menu_side_item_main_sub_icon_expand'] = !empty($settings_array['theme']['menu_side_item_main_sub_icon_expand']) ? explode(' ', $settings_array['theme']['menu_side_item_main_sub_icon_expand'])[1] : null;
+				$settings_array['theme']['menu_brand_type'] = $settings->get('theme', 'menu_brand_type', '');
 			//assign the setings
 				$view->assign('settings', $settings_array);
+		}
+	//background video
+		if (!empty($_SESSION['theme']['background_video']) && is_array($_SESSION['theme']['background_video'])) {
+			$view->assign('background_video', $_SESSION['theme']['background_video'][0]);
 		}
 	//document title
 		if (isset($_SESSION['theme']['title']['text']) && $_SESSION['theme']['title']['text'] != '') {
@@ -163,7 +183,7 @@
 		$document_title = (!empty($document['title']) ? $document['title'].' - ' : null).($document_title ?? '');
 		$view->assign('document_title', $document_title);
 	//domain selector control
-		$domain_selector_enabled = permission_exists('domain_select') && count($_SESSION['domains']) > 1 ? true : false;
+		$domain_selector_enabled = permission_exists('domain_select') && $domain_count > 1 ? true : false;
 		$view->assign('domain_selector_enabled', $domain_selector_enabled);
 	//browser name
 		$user_agent = http_user_agent();
@@ -176,15 +196,15 @@
 	//domains application path
 		$view->assign('domains_app_path', PROJECT_PATH.(file_exists($_SERVER['DOCUMENT_ROOT'].'/app/domains/domains.php') ? '/app/domains/domains.php' : '/core/domains/domains.php'));
 	//domain count
-		$view->assign('domain_count', is_array($_SESSION['domains']) ? sizeof($_SESSION['domains']) : 0);
+		$view->assign('domain_count', $domain_count);
 	//domain selector row background colors
 		$view->assign('domain_selector_background_color_1', !empty($_SESSION['theme']['domain_inactive_background_color'][0]) != '' ? $_SESSION['theme']['domain_inactive_background_color'][0] : '#eaedf2');
 		$view->assign('domain_selector_background_color_2', !empty($_SESSION['theme']['domain_inactive_background_color'][1]) != '' ? $_SESSION['theme']['domain_inactive_background_color'][1] : '#ffffff');
 		$view->assign('domain_active_background_color', !empty($_SESSION['theme']['domain_active_background_color']['text']) ? $_SESSION['theme']['domain_active_background_color']['text'] : '#eeffee');
 	//domain list
-		$view->assign('domains', $_SESSION['domains']);
+		$view->assign('domains', $domains);
 	//domain uuid
-		$view->assign('domain_uuid', $_SESSION['domain_uuid']);
+		$view->assign('domain_uuid', $domain_uuid);
 	//menu container
 		//load menu array into the session
 			if (!isset($_SESSION['menu']['array'])) {
@@ -194,13 +214,13 @@
 				unset($menu);
 			}
 		//build menu by style
-			switch ($_SESSION['theme']['menu_style']['text']) {
+			switch ($settings->get('theme', 'menu_style')) {
 				case 'side':
 					$view->assign('menu_side_state', (isset($_SESSION['theme']['menu_side_state']['text']) && $_SESSION['theme']['menu_side_state']['text'] != '' ? $_SESSION['theme']['menu_side_state']['text'] : 'expanded'));
 					if ($_SESSION['theme']['menu_side_state']['text'] != 'hidden') {
 						$menu_side_toggle = $_SESSION['theme']['menu_side_toggle']['text'] == 'hover' ? " onmouseenter=\"clearTimeout(menu_side_contract_timer); if ($('#menu_side_container').width() < 100) { menu_side_expand_start(); }\" onmouseleave=\"clearTimeout(menu_side_expand_timer); if ($('#menu_side_container').width() > 100 && $('#menu_side_state_current').val() != 'expanded') { menu_side_contract_start(); }\"" : null;
 					}
-					$container_open = "<div id='menu_side_container' ".($_SESSION['theme']['menu_side_state']['text'] == 'hidden' ? "style='display: none;'" : "class='hide-xs'").$menu_side_toggle." >\n";
+					$container_open = "<div id='menu_side_container' style='width: ".(in_array($_SESSION['theme']['menu_side_state']['text'], ['expanded','hidden']) ? ($_SESSION['theme']['menu_side_width_expanded']['text'] ?? 225) : ($_SESSION['theme']['menu_side_width_contracted']['text'] ?? 60))."px; ".($_SESSION['theme']['menu_side_state']['text'] == 'hidden' ? "display: none;'" : "' class='hide-xs'").$menu_side_toggle." >\n";
 					$menu = new menu;
 					$menu->text = $text;
 					$menu_html = $menu->menu_vertical($_SESSION['menu']['array']);
@@ -238,6 +258,7 @@
 		$view->assign('container_close', '</div>');
 		$view->assign('document_body', $body);
 		$view->assign('current_year', date('Y'));
+
 	//login logo
 		//determine logo source
 			if (isset($_SESSION['theme']['logo_login']['text']) && $_SESSION['theme']['logo_login']['text'] != '') {
@@ -265,15 +286,20 @@
 		$view->assign('login_logo_source', $login_logo_source);
 		$view->assign('login_logo_width', $login_logo_width);
 		$view->assign('login_logo_height', $login_logo_height);
-//login page
-	//$view->assign('login_page', $login_page);
+
+	//login page
+		//$view->assign('login_page', $login_page);
+
 	//messages
 		$view->assign('messages', message::html(true, '		'));
+
+	//set the input toggle style options: select, switch_round, switch_square
+		$view->assign('input_toggle_style_switch', $input_toggle_style_switch);
+
 	//session timer
-		if (
-			$authenticated &&
+		if ($authenticated &&
 			file_exists($_SERVER['DOCUMENT_ROOT'].PROJECT_PATH.'/app/session_timer/session_timer.php') &&
-			$_SESSION['security']['session_timer_enabled']['boolean'] == 'true'
+			$settings->get('security', 'session_timer_enabled', false)
 			) {
 			include_once PROJECT_PATH.'app/session_timer/session_timer.php';
 			$view->assign('session_timer', $session_timer);

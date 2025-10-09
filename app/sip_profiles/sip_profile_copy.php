@@ -51,7 +51,6 @@
 
 //get existing sip profile names to prevent duplicates
 	$sql = "select sip_profile_name from v_sip_profiles";
-	$database = new database;
 	$rows = $database->select($sql, $parameters ?? null, 'all');
 	if (is_array($rows) && @sizeof($rows) != 0) {
 		foreach ($rows as $row) {
@@ -69,7 +68,6 @@ if (is_uuid($sip_profile_uuid) && $sip_profile_name != '') {
 				$sql = "select sip_profile_hostname, sip_profile_enabled, sip_profile_description from v_sip_profiles ";
 				$sql .= "where sip_profile_uuid = :sip_profile_uuid ";
 				$parameters['sip_profile_uuid'] = $sip_profile_uuid;
-				$database = new database;
 				$row = $database->select($sql, $parameters, 'row');
 				$sip_profile_hostname = $row['sip_profile_hostname'];
 				$sip_profile_enabled = $row['sip_profile_enabled'];
@@ -89,10 +87,9 @@ if (is_uuid($sip_profile_uuid) && $sip_profile_name != '') {
 			$sql = "select * from v_sip_profile_domains ";
 			$sql .= "where sip_profile_uuid = :sip_profile_uuid ";
 			$parameters['sip_profile_uuid'] = $sip_profile_uuid;
-			$database = new database;
 			$result = $database->select($sql, $parameters, 'all');
 			if (is_array($result) && @sizeof($result) != 0) {
-				foreach ($result as $x => &$row) {
+				foreach ($result as $x => $row) {
 					$array['sip_profile_domains'][$x]['sip_profile_domain_uuid'] = uuid();
 					$array['sip_profile_domains'][$x]['sip_profile_uuid'] = $sip_profile_uuid_new;
 					$array['sip_profile_domains'][$x]['sip_profile_domain_name'] = $row["sip_profile_domain_name"];
@@ -106,10 +103,9 @@ if (is_uuid($sip_profile_uuid) && $sip_profile_name != '') {
 			$sql = "select * from v_sip_profile_settings ";
 			$sql .= "where sip_profile_uuid = :sip_profile_uuid ";
 			$parameters['sip_profile_uuid'] = $sip_profile_uuid;
-			$database = new database;
 			$result = $database->select($sql, $parameters, 'all');
 			if (is_array($result) && @sizeof($result) != 0) {
-				foreach ($result as $x => &$row) {
+				foreach ($result as $x => $row) {
 					$array['sip_profile_settings'][$x]['sip_profile_setting_uuid'] = uuid();
 					$array['sip_profile_settings'][$x]['sip_profile_uuid'] = $sip_profile_uuid_new;
 					$array['sip_profile_settings'][$x]['sip_profile_setting_name'] = $row["sip_profile_setting_name"];
@@ -121,9 +117,6 @@ if (is_uuid($sip_profile_uuid) && $sip_profile_name != '') {
 			unset($sql, $parameters, $result, $row);
 
 		//execute insert
-			$database = new database;
-			$database->app_name = 'sip_profiles';
-			$database->app_uuid = '159a8da8-0e8c-a26b-6d5b-19c532b6d470';
 			$database->save($array);
 			unset($array);
 

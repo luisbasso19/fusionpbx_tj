@@ -14,13 +14,14 @@
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "IVR Menus";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "IVR תפריטים";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Menu IVR";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "IVR მენიუ";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "IVR menu";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Zapowiedzi głosowe (IVR)";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Menu de IVR";
 	$apps[$x]['menu'][$y]['title']['pt-pt'] = "Menu de IVR";
 	$apps[$x]['menu'][$y]['title']['ro-ro'] = "Meniuri IVR";
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Голосовые меню (IVR)";
-	$apps[$x]['menu'][$y]['title']['sv-se'] = "IVR Meny";
+	$apps[$x]['menu'][$y]['title']['sv-se'] = "Knappvalsmeny";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Відео Кошик";
 	$apps[$x]['menu'][$y]['title']['tr-tr'] = "IVR Menüleri";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "IVR 菜单";

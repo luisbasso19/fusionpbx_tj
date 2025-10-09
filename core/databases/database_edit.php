@@ -88,8 +88,7 @@ if (count($_POST)>0 && empty($_POST["persistformvar"])) {
 					$array[0]['checked'] = 'true';
 					$array[0]['uuid'] = $database_uuid;
 				//delete
-					$obj = new databases;
-					$obj->delete($array);
+					$database->delete($array);
 				//redirect
 					header('Location: databases.php');
 					exit;
@@ -145,7 +144,6 @@ if (count($_POST)>0 && empty($_POST["persistformvar"])) {
 			//add new uuid
 				$array['databases'][0]['database_uuid'] = uuid();
 
-				$database = new database;
 				$database->app_name = 'databases';
 				$database->app_uuid = '8d229b6d-1383-fcec-74c6-4ce1682479e2';
 				$database->save($array);
@@ -164,7 +162,6 @@ if (count($_POST)>0 && empty($_POST["persistformvar"])) {
 			//add uuid to update
 				$array['databases'][0]['database_uuid'] = $database_uuid;
 
-				$database = new database;
 				$database->app_name = 'databases';
 				$database->app_uuid = '8d229b6d-1383-fcec-74c6-4ce1682479e2';
 				$database->save($array);
@@ -188,7 +185,6 @@ if (count($_POST)>0 && empty($_POST["persistformvar"])) {
 		$sql = "select * from v_databases ";
 		$sql .= "where database_uuid = :database_uuid ";
 		$parameters['database_uuid'] = $database_uuid;
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (is_array($row) && sizeof($row) != 0) {
 			$database_driver = $row["database_driver"];
@@ -230,11 +226,11 @@ if (count($_POST)>0 && empty($_POST["persistformvar"])) {
 	}
 	echo "	</div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'databases.php']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'databases.php']);
 	if ($action == 'update' && permission_exists('database_delete')) {
-		echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$_SESSION['theme']['button_icon_delete'],'name'=>'btn_delete','style'=>'margin-right: 15px;','onclick'=>"modal_open('modal-delete','btn_delete');"]);
+		echo button::create(['type'=>'button','label'=>$text['button-delete'],'icon'=>$settings->get('theme', 'button_icon_delete'),'name'=>'btn_delete','style'=>'margin-right: 15px;','onclick'=>"modal_open('modal-delete','btn_delete');"]);
 	}
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','name'=>'action','value'=>'save']);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','name'=>'action','value'=>'save']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
@@ -251,6 +247,7 @@ if (count($_POST)>0 && empty($_POST["persistformvar"])) {
 	}
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -405,6 +402,7 @@ if (count($_POST)>0 && empty($_POST["persistformvar"])) {
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>";
 	echo "<br><br>";
 
 	if ($action == "update") {

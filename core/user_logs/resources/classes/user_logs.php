@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2019-2021
+	Portions created by the Initial Developer are Copyright (C) 2019-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -26,19 +26,19 @@
 
 /**
  * user_logs class
- *
- * @method null delete
- * @method null toggle
- * @method null copy
  */
-if (!class_exists('user_logs')) {
 	class user_logs {
 
 		/**
-		* declare the variables
-		*/
-		private $app_name;
-		private $app_uuid;
+		 * declare constant variables
+		 */
+		const app_name = 'user_logs';
+		const app_uuid = '582a13cf-7d75-4ea3-b2d9-60914352d76e';
+
+		/**
+		 * declare private variables
+		 */
+		private $database;
 		private $name;
 		private $table;
 		private $toggle_field;
@@ -50,46 +50,51 @@ if (!class_exists('user_logs')) {
 		 */
 		public function __construct() {
 			//assign the variables
-				$this->app_name = 'user_logs';
-				$this->app_uuid = '582a13cf-7d75-4ea3-b2d9-60914352d76e';
-				$this->name = 'user_log';
-				$this->table = 'user_logs';
-				$this->toggle_field = '';
-				$this->toggle_values = ['true','false'];
-				$this->location = 'user_logs.php';
+			$this->name = 'user_log';
+			$this->table = 'user_logs';
+			$this->toggle_field = '';
+			$this->toggle_values = ['true','false'];
+			$this->location = 'user_logs.php';
+
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 		}
 
 		/**
 		 * add user_logs
 		 */
-		public static function add($result) {
-				$array = [];
+		public static function add($result, $details = '') {
+
+			//create the database object
+				$database = database::new();
+
 			//prepare the array
+				$array = [];
 				$array['user_logs'][0]["timestamp"] = 'now()';
 				$array['user_logs'][0]["domain_uuid"] = $result['domain_uuid'];
 				$array['user_logs'][0]["user_uuid"] = $result['user_uuid'];
 				$array['user_logs'][0]["username"] = $result['username'];
+				$array['user_logs'][0]["hostname"] = gethostname();
 				$array['user_logs'][0]["type"] = 'login';
 				$array['user_logs'][0]["remote_address"] = $_SERVER['REMOTE_ADDR'];
 				$array['user_logs'][0]["user_agent"] = $_SERVER['HTTP_USER_AGENT'];
+				$array['user_logs'][0]["session_id"] = session_id();
 				$array['user_logs'][0]["type"] = 'login';
-				if ($result["authorized"] == "true") {
+				if ($result["authorized"]) {
 					$array['user_logs'][0]["result"] = 'success';
 				}
 				else {
 					$array['user_logs'][0]["result"] = 'failure';
+					$array['user_logs'][0]["detail"] = $details;
 				}
 
 			//add the dialplan permission
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add("user_log_add", 'temp');
 
 			//save to the data
-				$database = new database;
-				$database->app_name = 'authentication';
-				$database->app_uuid = 'a8a12918-69a4-4ece-a1ae-3932be0e41f1';
-				if (strlen($user_log_uuid ?? '')>0)
-					$database->uuid($user_log_uuid);
 				$database->save($array, false);
 				$message = $database->message;
 
@@ -133,10 +138,7 @@ if (!class_exists('user_logs')) {
 						//delete the checked rows
 							if (is_array($array) && @sizeof($array) != 0) {
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//set message
@@ -148,6 +150,3 @@ if (!class_exists('user_logs')) {
 		}
 
 	}
-}
-
-?>

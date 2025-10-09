@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "Ajouter, Editer, Supprimer et Chercher des Utilisateurs";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "დაამატეთ, ჩაასწორეთ, წაშალეთ ან მოძებნეთ მომხმარებლები.";
 		$apps[$x]['description']['nl-nl'] = "";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "Adicionar, editar, apagar e pesquisar usuários.";
@@ -92,6 +93,10 @@
 		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		$apps[$x]['permissions'][$y]['groups'][] = "admin";
 		$apps[$x]['permissions'][$y]['groups'][] = "users";
+		$y++;
+		$apps[$x]['permissions'][$y]['name'] = "user_password";
+		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
+		$apps[$x]['permissions'][$y]['groups'][] = "admin";
 
 	//default settings
 		$y=0;
@@ -174,6 +179,14 @@
 		$apps[$x]['default_settings'][$y]['default_setting_value'] = "3600";
 		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
 		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Login blocked for many failures in a given time.";
+		$y++;
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = "56416cfe-c018-48db-8362-e90bc3fbaa4f";
+		$apps[$x]['default_settings'][$y]['default_setting_category'] = "users";
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "database_retention_days";
+		$apps[$x]['default_settings'][$y]['default_setting_name'] = "numeric";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "180";
+		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
+		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Number of days to retain the user logs in the database for the maintenance app.";
 
 	//schema details
 		$y=0;
@@ -260,7 +273,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "user_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['toggle'] = ['true','false'];
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
@@ -472,4 +485,3 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 
 ?>
-

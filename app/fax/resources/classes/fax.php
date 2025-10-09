@@ -25,8 +25,13 @@
 */
 
 //define the fax class
-if (!class_exists('fax')) {
 	class fax {
+
+		/**
+		 * declare constant variables
+		 */
+		const app_name = 'fax';
+		const app_uuid = '24108154-4ac3-1db6-1551-4731703a4440';
 
 		/**
 		* define the variables
@@ -40,28 +45,31 @@ if (!class_exists('fax')) {
 		public $fax_forward_number;
 		public $destination_number;
 		public $box;
-		private $forward_prefix;
+		public $order_by;
+		public $order;
+		public $download;
 
 		/**
 		* declare private variables
 		*/
-		private $app_name;
-		private $app_uuid;
+		private $database;
 		private $permission_prefix;
 		private $list_page;
 		private $table;
 		private $uuid_prefix;
 		private $toggle_field;
 		private $toggle_values;
+		private $forward_prefix;
 
 		/**
 		* Called when the object is created
 		*/
 		public function __construct() {
 
-			//assign private variables
-				$this->app_name = 'fax';
-				$this->app_uuid = '24108154-4ac3-1db6-1551-4731703a4440';
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 
 		}
 
@@ -71,6 +79,16 @@ if (!class_exists('fax')) {
 		* @var string $value	string to be cached
 		*/
 		public function dialplan() {
+
+			//require the fax_extension
+				if (empty($this->fax_extension)) {
+					return false;
+				}
+
+			//require the destination_number
+				if (empty($this->destination_number)) {
+					return false;
+				}
 
 			//normalize the fax forward number
 				if (strlen($this->fax_forward_number) > 3) {
@@ -96,14 +114,13 @@ if (!class_exists('fax')) {
 						$array['dialplan_details'][0]['domain_uuid'] = $this->domain_uuid;
 
 					//grant temporary permissions
-						$p = new permissions;
+						$p = permissions::new();
 						$p->add('dialplan_detail_delete', 'temp');
 
 					//execute delete
-						$database = new database;
-						$database->app_name = 'fax';
-						$database->app_uuid = '24108154-4ac3-1db6-1551-4731703a4440';
-						$database->delete($array);
+						$this->database->app_name = 'fax';
+						$this->database->app_uuid = '24108154-4ac3-1db6-1551-4731703a4440';
+						$this->database->delete($array);
 						unset($array);
 
 					//revoke temporary permissions
@@ -152,10 +169,10 @@ if (!class_exists('fax')) {
 				$dialplan["dialplan_name"] = ($this->fax_name != '') ? $this->fax_name : format_phone($this->destination_number);
 				$dialplan["dialplan_number"] = $this->fax_extension;
 				$dialplan["dialplan_context"] = $_SESSION['domain_name'];
-				$dialplan["dialplan_continue"] = "false";
+				$dialplan["dialplan_continue"] = false;
 				$dialplan["dialplan_xml"] = $dialplan_xml;
 				$dialplan["dialplan_order"] = "40";
-				$dialplan["dialplan_enabled"] = "true";
+				$dialplan["dialplan_enabled"] = true;
 				$dialplan["dialplan_description"] = $this->fax_description;
 				$dialplan_detail_order = 10;
 
@@ -163,18 +180,17 @@ if (!class_exists('fax')) {
 				$array['dialplans'][] = $dialplan;
 
 			//add the dialplan permission
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add("dialplan_add", 'temp');
 				$p->add("dialplan_detail_add", 'temp');
 				$p->add("dialplan_edit", 'temp');
 				$p->add("dialplan_detail_edit", 'temp');
 
 			//save the dialplan
-				$database = new database;
-				$database->app_name = 'fax';
-				$database->app_uuid = '24108154-4ac3-1db6-1551-4731703a4440';
-				$database->save($array);
-				//$message = $database->message;
+				$this->database->app_name = 'fax';
+				$this->database->app_uuid = '24108154-4ac3-1db6-1551-4731703a4440';
+				$this->database->save($array);
+				//$message = $this->database->message;
 
 			//remove the temporary permission
 				$p->delete("dialplan_add", 'temp');
@@ -232,8 +248,7 @@ if (!class_exists('fax')) {
 								$sql .= "where domain_uuid = :domain_uuid ";
 								$sql .= "and ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
 								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-								$database = new database;
-								$rows = $database->select($sql, $parameters, 'all');
+								$rows = $this->database->select($sql, $parameters, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$faxes[$row['uuid']]['dialplan_uuid'] = $row['dialplan_uuid'];
@@ -248,8 +263,7 @@ if (!class_exists('fax')) {
 								$sql .= "where domain_uuid = :domain_uuid ";
 								$sql .= "and ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
 								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-								$database = new database;
-								$rows = $database->select($sql, $parameters, 'all');
+								$rows = $this->database->select($sql, $parameters, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										if ($row['fax_mode'] == 'rx') { $fax_files[$row['uuid']]['folder'] = 'inbox'; }
@@ -309,7 +323,7 @@ if (!class_exists('fax')) {
 							if (!empty($array) && is_array($array) && @sizeof($array) != 0) {
 
 								//grant temporary permissions
-									$p = new permissions;
+									$p = permissions::new();
 									$p->add('fax_delete', 'temp');
 									$p->add('fax_user_delete', 'temp');
 									$p->add('fax_file_delete', 'temp');
@@ -318,10 +332,7 @@ if (!class_exists('fax')) {
 									$p->add('dialplan_detail_delete', 'temp');
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//revoke temporary permissions
@@ -390,8 +401,7 @@ if (!class_exists('fax')) {
 								$sql .= "where domain_uuid = :domain_uuid ";
 								$sql .= "and ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
 								$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-								$database = new database;
-								$rows = $database->select($sql, $parameters, 'all');
+								$rows = $this->database->select($sql, $parameters, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										if ($row['fax_mode'] == 'rx') { $fax_files[$row['uuid']]['folder'] = 'inbox'; }
@@ -439,10 +449,7 @@ if (!class_exists('fax')) {
 							if (is_array($array) && @sizeof($array) != 0) {
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//set message
@@ -490,10 +497,7 @@ if (!class_exists('fax')) {
 							if (is_array($array) && @sizeof($array) != 0) {
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//set message
@@ -547,8 +551,7 @@ if (!class_exists('fax')) {
 									$sql .= "where (domain_uuid = :domain_uuid or domain_uuid is null) ";
 									$sql .= "and ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
 									$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-									$database = new database;
-									$rows = $database->select($sql, $parameters, 'all');
+									$rows = $this->database->select($sql, $parameters, 'all');
 									if (is_array($rows) && @sizeof($rows) != 0) {
 										$y = 0;
 										foreach ($rows as $x => $row) {
@@ -573,8 +576,7 @@ if (!class_exists('fax')) {
 												$sql_2 .= "and e.fax_uuid = :fax_uuid ";
 												$parameters_2['domain_uuid'] = $_SESSION['domain_uuid'];
 												$parameters_2['fax_uuid'] = $row['fax_uuid'];
-												$database = new database;
-												$rows_2 = $database->select($sql_2, $parameters_2, 'all');
+												$rows_2 = $this->database->select($sql_2, $parameters_2, 'all');
 												if (is_array($rows_2) && @sizeof($rows_2) != 0) {
 													foreach ($rows_2 as $row_2) {
 
@@ -595,8 +597,7 @@ if (!class_exists('fax')) {
 											//fax dialplan record
 												$sql_3 = "select * from v_dialplans where dialplan_uuid = :dialplan_uuid";
 												$parameters_3['dialplan_uuid'] = $row['dialplan_uuid'];
-												$database = new database;
-												$dialplan = $database->select($sql_3, $parameters_3, 'row');
+												$dialplan = $this->database->select($sql_3, $parameters_3, 'row');
 												if (is_array($dialplan) && @sizeof($dialplan) != 0) {
 
 													//copy data
@@ -622,15 +623,13 @@ if (!class_exists('fax')) {
 							if (is_array($array) && @sizeof($array) != 0) {
 
 								//grant temporary permissions
-									$p = new permissions;
+									$p = permissions::new();
 									$p->add('fax_add', 'temp');
 									$p->add('dialplan_add', 'temp');
 
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//revoke temporary permissions
@@ -654,8 +653,71 @@ if (!class_exists('fax')) {
 			}
 		} //method
 
+		/**
+		 * toggle read/unread
+		 */
+		public function fax_file_toggle($records) {
+
+			if (permission_exists('fax_file_edit')) {
+
+				//add multi-lingual support
+					$language = new text;
+					$text = $language->get();
+
+				//validate the token
+					if (empty($this->download) || $this->download == false) {
+						$token = new token;
+						if (!$token->validate($_SERVER['PHP_SELF'])) {
+							message::add($text['message-invalid_token'],'negative');
+							header('Location: fax_files.php?order_by='.urlencode($this->order_by).'&order='.urlencode($this->order).'&id='.urlencode($this->fax_uuid).'&box='.urlencode($this->box));
+							exit;
+						}
+					}
+
+				//toggle multiple records
+					if (is_array($records) && @sizeof($records) != 0) {
+
+						//filter out unchecked fax files, build the toggle array
+							$fax_files_toggled = 0;
+							foreach ($records as $x => $record) {
+								if (!empty($record['checked']) && $record['checked'] == 'true' && is_uuid($record['uuid'])) {
+									//get current read state
+									$sql = "select read_date from v_fax_files where fax_file_uuid = :fax_file_uuid";
+									$parameters['fax_file_uuid'] = $record['uuid'];
+									$read_date = $this->database->select($sql, $parameters, 'column');
+									unset($sql, $parameters);
+
+									//toggle read state
+									$array['fax_files'][$x]['fax_file_uuid'] = $record['uuid'];
+									$array['fax_files'][$x]['domain_uuid'] = $_SESSION['domain_uuid'];
+									$array['fax_files'][$x]['read_date'] = empty($read_date) ? 'now()' : null;
+									$fax_files_toggled++;
+								}
+							}
+							unset($records);
+
+						//update the checked rows
+							if (!empty($array) && is_array($array)) {
+
+								//execute save
+
+									$this->database->save($array, false);
+									unset($array);
+
+								//return toggled count
+									return $fax_files_toggled;
+
+							}
+
+					}
+
+				//return none
+					return 0;
+			}
+
+		}
+
 	} //class
-}
 
 /*
 $o = new fax;
@@ -668,5 +730,3 @@ $c->destination_number = $fax_destination_number;
 $c->fax_description = $fax_description;
 $c->dialplan();
 */
-
-?>

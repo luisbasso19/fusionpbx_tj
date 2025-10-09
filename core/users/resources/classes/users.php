@@ -26,19 +26,21 @@
 
 /**
  * users class
- *
- * @method null delete
- * @method null toggle
- * @method null copy
  */
-if (!class_exists('users')) {
 	class users {
+
+		/**
+		 * declare constant variables
+		 */
+		const app_name = 'users';
+		const app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
 
 		/**
 		* declare the variables
 		*/
 		private $app_name;
 		private $app_uuid;
+		private $database;
 		private $name;
 		private $table;
 		private $toggle_field;
@@ -50,13 +52,16 @@ if (!class_exists('users')) {
 		 */
 		public function __construct() {
 			//assign the variables
-				$this->app_name = 'users';
-				$this->app_uuid = '112124b3-95c2-5352-7e9d-d14c0b88f207';
-				$this->name = 'user';
-				$this->table = 'users';
-				$this->toggle_field = 'user_enabled';
-				$this->toggle_values = ['true','false'];
-				$this->location = 'users.php';
+			$this->name = 'user';
+			$this->table = 'users';
+			$this->toggle_field = 'user_enabled';
+			$this->toggle_values = ['true','false'];
+			$this->location = 'users.php';
+
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 		}
 
 		/**
@@ -92,8 +97,7 @@ if (!class_exists('users')) {
 												$sql = "select domain_uuid from v_users ";
 												$sql .= "where user_uuid = :user_uuid ";
 												$parameters['user_uuid'] = $user_uuid;
-												$database = new database;
-												$domain_uuid = $database->select($sql, $parameters, 'column');
+												$domain_uuid = $this->database->select($sql, $parameters, 'column');
 												unset($sql, $parameters);
 											}
 											else {
@@ -130,15 +134,12 @@ if (!class_exists('users')) {
 						//delete the checked rows
 							if (is_array($array) && @sizeof($array) != 0) {
 								//execute
-									$p = new permissions;
+									$p = permissions::new();
 									$p->add('user_setting_delete', 'temp');
 									$p->add('user_group_delete', 'temp');
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 									$p->delete('user_setting_delete', 'temp');
@@ -181,8 +182,7 @@ if (!class_exists('users')) {
 							if (is_array($uuids) && @sizeof($uuids) != 0) {
 								$sql = "select ".$this->name."_uuid as uuid, ".$this->toggle_field." as toggle from v_".$this->table." ";
 								$sql .= "where ".$this->name."_uuid in (".implode(', ', $uuids).") ";
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $row) {
 										$states[$row['uuid']] = $row['toggle'];
@@ -205,10 +205,8 @@ if (!class_exists('users')) {
 						//save the changes
 							if (is_array($array) && @sizeof($array) != 0) {
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//set message
@@ -251,8 +249,7 @@ if (!class_exists('users')) {
 							if (!empty($uuids) && is_array($uuids) && @sizeof($uuids) != 0) {
 								$sql = "select * from v_".$this->table." ";
 								$sql .= "where ".$this->name."_uuid in (".implode(', ', $uuids).") ";
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									$x = 0;
 									foreach ($rows as $row) {
@@ -273,10 +270,8 @@ if (!class_exists('users')) {
 						//save the changes and set the message
 							if (!empty($array) && is_array($array) && @sizeof($array) != 0) {
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//set message
@@ -287,7 +282,31 @@ if (!class_exists('users')) {
 			}
 		}
 
+		/**
+		 * Remove old user log entries. Called the maintenance service application.
+		 * @param settings $settings
+		 * @return void
+		 */
+		public static function database_maintenance(settings $settings): void {
+			$database = $settings->database();
+			$domains = maintenance_service::get_domains($database);
+			foreach ($domains as $domain_uuid => $domain_name) {
+				$domain_settings = new settings(['database' => $database, 'domain_uuid' => $domain_uuid]);
+				$retention_days = $domain_settings->get('users', 'database_retention_days', '');
+				if (!empty($retention_days) && is_numeric($retention_days)) {
+					$sql = "delete from v_user_logs where timestamp < NOW() - INTERVAL '$retention_days days'";
+					$sql.= " and domain_uuid = '$domain_uuid'";
+					$database->execute($sql);
+					$code = $database->message['code'] ?? 0;
+					if ($code == 200) {
+						maintenance_service::log_write(self::class, "Successfully removed entries older than $retention_days", $domain_uuid);
+					} else {
+						$message = $database->message['message'] ?? "An unknown error has occurred";
+						maintenance_service::log_write(self::class, "Unable to remove old database records. Error message: $message ($code)", $domain_uuid, maintenance_service::LOG_ERROR);
+					}
+				} else {
+					maintenance_service::log_write(self::class, "Database retention days not set or not numeric", $domain_uuid);
+				}
+			}
+		}
 	}
-}
-
-?>

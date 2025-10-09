@@ -13,13 +13,14 @@
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Journaux d'Urgence";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "יומן חירום";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Registri di Emergenza";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "ავარიული სიტუაციის ჟურნალი";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Logboeken voor Noodgevallen";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Dzienniki Alarmowe";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Registros de Emergência";
 	$apps[$x]['menu'][$y]['title']['pt-pt'] = "Registos de Emergência";
 	$apps[$x]['menu'][$y]['title']['ro-ro'] = "Jurnale de Urgență";
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Журналы Aварийных Cитуаций";
-	$apps[$x]['menu'][$y]['title']['sv-se'] = "Dnevniki za Nujne Primere";
+	$apps[$x]['menu'][$y]['title']['sv-se'] = "Nödsamtalsloggar";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Журнали Aварійних Cитуацій";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "紧急日志";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "緊急ログ";

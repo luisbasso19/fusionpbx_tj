@@ -72,9 +72,8 @@
 
 		$dialplan_context = $_POST["dialplan_context"];
 		$dialplan_order = $_POST["dialplan_order"];
-		$dialplan_enabled = $_POST["dialplan_enabled"];
+		$dialplan_enabled = $_POST["dialplan_enabled"] ?? false;
 		$dialplan_description = $_POST["dialplan_description"];
-		if (empty($dialplan_enabled)) { $dialplan_enabled = "true"; } //set default to enabled
 	}
 
 //set the default
@@ -111,11 +110,11 @@
 				require_once "resources/footer.php";
 				return;
 			}
-	
+
 		//remove the invalid characters from the extension name
 			$dialplan_name = str_replace(" ", "_", $dialplan_name);
 			$dialplan_name = str_replace("/", "", $dialplan_name);
-	
+
 		//add the main dialplan include entry
 			$dialplan_uuid = uuid();
 			$array['dialplans'][0]['domain_uuid'] = $domain_uuid;
@@ -123,7 +122,7 @@
 			$array['dialplans'][0]['app_uuid'] = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
 			$array['dialplans'][0]['dialplan_name'] = $dialplan_name;
 			$array['dialplans'][0]['dialplan_order'] = $dialplan_order;
-			$array['dialplans'][0]['dialplan_continue'] = 'false';
+			$array['dialplans'][0]['dialplan_continue'] = false;
 			$array['dialplans'][0]['dialplan_context'] = $dialplan_context;
 			$array['dialplans'][0]['dialplan_enabled'] = $dialplan_enabled;
 			$array['dialplans'][0]['dialplan_description'] = $dialplan_description;
@@ -149,7 +148,7 @@
 				$array['dialplan_details'][1]['dialplan_detail_data'] = $condition_expression_2;
 				$array['dialplan_details'][1]['dialplan_detail_order'] = '2';
 			}
-	
+
 		//add action 1
 			$dialplan_detail_uuid = uuid();
 			$array['dialplan_details'][2]['domain_uuid'] = $domain_uuid;
@@ -161,7 +160,7 @@
 				$array['dialplan_details'][2]['dialplan_detail_data'] = $action_data_1;
 			}
 			$array['dialplan_details'][2]['dialplan_detail_order'] = '3';
-	
+
 		//add action 2
 			if (!empty($action_application_2)) {
 				$dialplan_detail_uuid = uuid();
@@ -175,18 +174,15 @@
 				}
 				$array['dialplan_details'][3]['dialplan_detail_order'] = '4';
 			}
-	
+
 		//execute inserts
-			$database = new database;
-			$database->app_name = 'dialplans';
-			$database->app_uuid = '742714e5-8cdf-32fd-462c-cbe7e3d655db';
 			$database->save($array);
 			unset($array);
-	
+
 		//clear the cache
 			$cache = new cache;
 			$cache->delete("dialplan:".$_SESSION["context"]);
-	
+
 		//send a message and redirect the user
 			message::add($text['message-update']);
 			header("Location: ".PROJECT_PATH."/app/dialplans/dialplans.php");
@@ -239,9 +235,9 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['header-dialplan-add']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','link'=>'dialplans.php']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','link'=>'dialplans.php']);
 	echo button::create(['type'=>'button','label'=>$text['button-advanced'],'icon'=>'tools','style'=>'margin-left: 15px;','link'=>'dialplan_edit.php']);
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','style'=>'margin-left: 15px;']);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','style'=>'margin-left: 15px;']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
@@ -249,8 +245,9 @@
 	echo $text['description-dialplan_manager-superadmin']."\n";
 	echo "<br /><br />\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
-	
+
 	echo "<tr>\n";
 	echo "<td width='30%' class='vncellreq' valign='top' align='left' nowrap>\n";
 	echo "	".$text['label-name']."\n";
@@ -261,7 +258,7 @@
 	echo "\n";
 	echo "</td>\n";
 	echo "</tr>\n";
-	
+
 	//echo "<tr>\n";
 	//echo "<td class='vncellreq' valign='top' align='left' nowrap>\n";
 	//echo "    Continue\n";
@@ -269,13 +266,13 @@
 	//echo "<td class='vtable' align='left'>\n";
 	//echo "    <select class='formfld' name='dialplan_continue' style='width: 60%;'>\n";
 	//echo "    <option value=''></option>\n";
-	//if ($dialplan_continue == "true") {
+	//if ($dialplan_continue == true) {
 	//	echo "    <option value='true' selected='selected'>true</option>\n";
 	//}
 	//else {
 	//	echo "    <option value='true'>true</option>\n";
 	//}
-	//if ($dialplan_continue == "false") {
+	//if ($dialplan_continue == false) {
 	//	echo "    <option value='false' selected='selected'>false</option>\n";
 	//}
 	//else {
@@ -286,7 +283,7 @@
 	//echo "Extension Continue in most cases this is false. default: false\n";
 	//echo "</td>\n";
 	//echo "</tr>\n";
-	
+
 	echo "<tr>\n";
 	echo "<td class='vncellreq' valign='top' align='left' nowrap='nowrap'>\n";
 	echo "	".$text['label-condition_1']."\n";
@@ -316,7 +313,7 @@
 		obj.parentNode.removeChild(obj);
 		Replace_condition_field_1(this.objs);
 	}
-	
+
 	function Replace_condition_field_1(obj){
 		obj[2].parentNode.insertBefore(obj[0],obj[2]);
 		obj[0].parentNode.removeChild(obj[1]);
@@ -374,13 +371,13 @@
 	echo "	<div id='desc_condition_expression_1'></div>\n";
 	echo "</td>\n";
 	echo "</tr>\n";
-	
+
 	echo "<tr>\n";
 	echo "<td class='vncell' valign='top' align='left' nowrap>\n";
 	echo "	".$text['label-condition_2']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	
+
 	echo "	<table border='0'>\n";
 	echo "	<tr>\n";
 	//echo "	<td align='left'>".$text['label-field']."</td>\n";
@@ -409,7 +406,7 @@
 		obj.parentNode.removeChild(obj);
 		Replace_condition_field_2(this.objs);
 	}
-	
+
 	function Replace_condition_field_2(obj){
 		obj[2].parentNode.insertBefore(obj[0],obj[2]);
 		obj[0].parentNode.removeChild(obj[1]);
@@ -463,7 +460,7 @@
 	echo "	<div id='desc_condition_expression_2'></div>\n";
 	echo "</td>\n";
 	echo "</tr>\n";
-	
+
 	echo "<tr>\n";
 	echo "<td class='vncellreq' valign='top' align='left' nowrap>\n";
 	echo "    ".$text['label-action_1']."\n";
@@ -472,10 +469,10 @@
 	echo $destination->select('dialplan', 'action_1', escape($action_1 ?? null));
 	echo "</td>\n";
 	echo "</tr>\n";
-	
+
 	echo "</td>\n";
 	echo "</tr>\n";
-	
+
 	echo "<tr>\n";
 	echo "<td class='vncell' valign='top' align='left' nowrap>\n";
 	echo "    ".$text['label-action_2']."\n";
@@ -484,7 +481,7 @@
 	echo $destination->select('dialplan', 'action_2', escape($action_2 ?? null));
 	echo "</td>\n";
 	echo "</tr>\n";
-	
+
 	echo "<tr>\n";
 	echo "	<td class='vncell' valign='top' align='left' nowrap>\n";
 	echo " 		".$text['label-context']."\n";
@@ -494,7 +491,7 @@
 	echo "		<br />\n";
 	echo "	</td>\n";
 	echo "</tr>\n";
-	
+
 	echo "<tr>\n";
 	echo "<td class='vncellreq' valign='top' align='left' nowrap>\n";
 	echo "	".$text['label-order']."\n";
@@ -514,20 +511,27 @@
 	echo "	<br />\n";
 	echo "</td>\n";
 	echo "</tr>\n";
-	
+
 	echo "<tr>\n";
 	echo "	<td class='vncellreq' valign='top' align='left' nowrap>\n";
 	echo "		".$text['label-enabled']."\n";
 	echo "	</td>\n";
 	echo "	<td class='vtable' align='left'>\n";
-	echo "		<select class='formfld' name='dialplan_enabled'>\n";
-	echo "			<option value='true'>".$text['option-true']."</option>\n";
-	echo "			<option value='false' ".(!empty($dialplan_enabled) && $dialplan_enabled == "false" ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
-	echo "		</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
+	}
+	echo "	<select class='formfld' id='dialplan_enabled' name='dialplan_enabled'>\n";
+	echo "		<option value='true' ".($dialplan_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($dialplan_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "	</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
+	}
 	echo "		<br />\n";
 	echo "	</td>\n";
 	echo "</tr>\n";
-	
+
 	echo "<tr>\n";
 	echo "	<td class='vncell' valign='top' align='left' nowrap>\n";
 	echo " 		".$text['label-description']."\n";
@@ -539,6 +543,7 @@
 	echo "</tr>\n";
 
 	echo "</table>";
+	echo "</div>\n";
 	echo "<br><br>";
 
 	if (!empty($action) && $action == "update") {

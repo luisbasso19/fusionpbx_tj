@@ -65,10 +65,9 @@
 		$array['user_groups'][0]['group_name'] = $group_name;
 		$array['user_groups'][0]['user_uuid'] = $user_uuid;
 
-		$p = new permissions;
+		$p = permissions::new();
 		$p->add('user_group_add', 'temp');
 
-		$database = new database;
 		$database->app_name = 'groups';
 		$database->app_uuid = '2caf27b0-540a-43d5-bb9b-c9871a1e4f84';
 		$database->save($array);

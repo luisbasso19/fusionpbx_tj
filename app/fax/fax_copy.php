@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2019
+	Portions created by the Initial Developer are Copyright (C) 2008-2024
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -53,7 +53,6 @@
 			$sql .= "and fax_uuid = :fax_uuid ";
 			$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 			$parameters['fax_uuid'] = $fax_uuid;
-			$database = new database;
 			$row = $database->select($sql, $parameters, 'row');
 			if (is_array($row) && @sizeof($row) != 0) {
 				$fax_extension = $row["fax_extension"];
@@ -107,12 +106,9 @@
 			$array['fax'][0]['fax_description'] = $fax_description;
 
 		//execute insert
-			$p = new permissions;
+			$p = permissions::new();
 			$p->add('fax_add', 'temp');
 
-			$database = new database;
-			$database->app_name = 'fax';
-			$database->app_uuid = '24108154-4ac3-1db6-1551-4731703a4440';
 			$database->save($array);
 			unset($array);
 

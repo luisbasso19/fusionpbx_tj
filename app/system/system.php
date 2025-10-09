@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2024
+Con	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -49,9 +49,9 @@
 	if (permission_exists("system_view_support")) {
 		$setting_size = !empty($_SESSION["editor"]["font_size"]["text"]) ? $_SESSION["editor"]["font_size"]["text"] : '12px';
 		$setting_theme = !empty($_SESSION["editor"]["theme"]["text"]) ? $_SESSION["editor"]["theme"]["text"] : 'cobalt';
-		$setting_invisibles = !empty($_SESSION["editor"]["invisibles"]["boolean"]) ? $_SESSION["editor"]["invisibles"]["boolean"] : 'false';
-		$setting_indenting = !empty($_SESSION["editor"]["indent_guides"]["boolean"]) ? $_SESSION["editor"]["indent_guides"]["boolean"] : 'false';
-		$setting_numbering = !empty($_SESSION["editor"]["line_numbers"]["boolean"]) ? $_SESSION["editor"]["line_numbers"]["boolean"] : 'true';
+		$setting_invisibles = isset($_SESSION['editor']['invisibles']['text']) ? $_SESSION['editor']['invisibles']["text"] : 'false';
+		$setting_indenting = isset($_SESSION['editor']['indent_guides']['text']) ? $_SESSION['editor']['indent_guides']["text"]: 'false';
+		$setting_numbering = isset($_SESSION['editor']['line_numbers']['text']) ? $_SESSION['editor']['line_numbers']["text"] : 'true';
 	}
 
 //additional includes
@@ -122,6 +122,7 @@
 	echo "<b>".$text['header-sys-status']."</b>";
 	echo "<br><br>";
 
+	echo "<div class='card'>\n";
 	echo "<table width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\">\n";
 	echo "<tr>\n";
 	echo "	<th class='th' colspan='2' align='left'>".$text['title-sys-info']."</th>\n";
@@ -137,8 +138,8 @@
 		echo "</tr>\n";
 
 		$git_path = $system_information['git']['path'];
-		if(file_exists($git_path)){
-			if($system_information['git']['status'] === 'unknown'){
+		if (file_exists($git_path)){
+			if ($system_information['git']['status'] === 'unknown') {
 				echo "<tr>\n";
 				echo "	<td width='20%' class=\"vncell\" style='text-align: left;'>\n";
 				echo "		".$text['label-git_info']."\n";
@@ -147,7 +148,8 @@
 				echo "		".$text['label-git_corrupted']."\n";
 				echo "	</td>\n";
 				echo "</tr>\n";
-			}else{
+			}
+			else {
 				echo "<tr>\n";
 				echo "	<td width='20%' class=\"vncell\" style='text-align: left;'>\n";
 				echo "		".$text['label-git_info']."\n";
@@ -178,7 +180,7 @@
 			echo "	</td>\n";
 			echo "	<td class=\"row_style1\">{$system_information['switch']['version']} ({$system_information['switch']['bits']})</td>\n";
 			echo "</tr>\n";
-			if($system_information['switch']['git']['info'] !== 'connection failed'){
+			if ($system_information['switch']['git']['info'] !== 'connection failed') {
 				echo "<tr>\n";
 				echo "	<td width='20%' class=\"vncell\" style='text-align: left;'>\n";
 				echo "		".$text['label-switch']." ".$text['label-git_info']."\n";
@@ -195,8 +197,14 @@
 		echo "	<td class=\"row_style1\">".$system_information['php']['version']."</td>\n";
 		echo "</tr>\n";
 
+		echo "</table>\n";
+		echo "</div>\n";
+
+
+		echo "<div class='card'>\n";
+		echo "<table width=\"100%\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\">\n";
 		echo "<tr>\n";
-		echo "	<th class='th' colspan='2' align='left' style='padding-top:2em'>".$text['title-os-info']."</th>\n";
+		echo "	<th class='th' colspan='2' align='left'>".$text['title-os-info']."</th>\n";
 		echo "</tr>\n";
 
 		if ($system_information['os']['name'] !== 'permission denied') {
@@ -250,11 +258,12 @@
 	echo "	</td>\n";
 	echo "</tr>\n";
 	echo "</table>\n";
-	echo "<br /><br>";
+	echo "</div>\n";
 
 //memory information
 	if (permission_exists('system_view_ram')) {
 		if ($system_information['os']['mem'] !== 'unknown' && $system_information['os']['mem'] !== 'permission denied') {
+			echo "<div class='card'>\n";
 			echo "<table width=\"100%\" border=\"0\" cellpadding=\"7\" cellspacing=\"0\">\n";
 			echo "<tr>\n";
 			echo "	<th colspan='2' align='left' valign='top'>".$text['title-mem']."</th>\n";
@@ -270,13 +279,14 @@
 			echo "	</td>\n";
 			echo "</tr>\n";
 			echo "</table>\n";
-			echo "<br /><br />";
+			echo "</div>\n";
 		}
 	}
 
 //cpu information
 	if (permission_exists('system_view_cpu')) {
 		if ($system_information['os']['cpu'] !== 'unknown' && $system_information['os']['cpu'] !== 'permission denied') {
+			echo "<div class='card'>\n";
 			echo "<table width=\"100%\" border=\"0\" cellpadding=\"7\" cellspacing=\"0\">\n";
 			echo "<tr>\n";
 			echo "	<th class='th' colspan='2' align='left' valign='top'>".$text['title-cpu']."</th>\n";
@@ -292,15 +302,14 @@
 			echo "	</td>\n";
 			echo "</tr>\n";
 			echo "</table>\n";
-			echo "<br /><br />";
+			echo "</div>\n";
 		}
 	}
 
 //drive space
 	if (permission_exists('system_view_hdd')) {
 		if (stristr(PHP_OS, 'Linux') || stristr(PHP_OS, 'FreeBSD')) {
-			echo "<!--\n";
-			echo "-->\n";
+			echo "<div class='card'>\n";
 			echo "<table width=\"100%\" border=\"0\" cellpadding=\"7\" cellspacing=\"0\">\n";
 			echo "<tr>\n";
 			echo "	<th class='th' colspan='2' align='left'>".$text['title-drive']."</th>\n";
@@ -316,7 +325,9 @@
 			echo "	</td>\n";
 			echo "</tr>\n";
 			echo "</table>\n";
-		} else if (stristr(PHP_OS, 'WIN')) {
+			echo "</div>\n";
+		}
+		else if (stristr(PHP_OS, 'WIN')) {
 			//disk_free_space returns the number of bytes available on the drive;
 			//1 kilobyte = 1024 byte
 			//1 megabyte = 1024 kilobyte
@@ -325,6 +336,7 @@
 			$disk_size_free = round(disk_free_space($drive_letter)/1024/1024, 2);
 			$disk_percent_available = round(($disk_size_free/$disk_size) * 100, 2);
 
+			echo "<div class='card'>\n";
 			echo "<table width=\"100%\" border=\"0\" cellpadding=\"7\" cellspacing=\"0\">\n";
 			echo "<tr>\n";
 			echo "	<th class='th' colspan='2' align='left'>".$text['label-drive']."</th>\n";
@@ -356,18 +368,29 @@
 			echo "	</td>\n";
 			echo "</tr>\n";
 			echo "</table>\n";
+			echo "</div>\n";
 		}
-		echo "<br /><br />";
 	}
 
 //database information
 	if (permission_exists('system_view_database')) {
 		if ($system_information['database']['type'] == 'pgsql') {
 
+			echo "<div class='card'>\n";
 			echo "<table width=\"100%\" border=\"0\" cellpadding=\"7\" cellspacing=\"0\">\n";
 			echo "<tr>\n";
 			echo "	<th class='th' colspan='2' align='left'>".$text['title-database']."</th>\n";
 			echo "</tr>\n";
+
+			echo "<tr>\n";
+			echo "	<td width='20%' class=\"vncell\" style='text-align: left;'>\n";
+			echo "		".$text['label-name']." \n";
+			echo "	</td>\n";
+			echo "	<td class=\"row_style1\">\n";
+			echo "		".$system_information['database']['name']."<br>\n";
+			echo "	</td>\n";
+			echo "</tr>\n";
+
 			echo "<tr>\n";
 			echo "	<td width='20%' class=\"vncell\" style='text-align: left;'>\n";
 			echo "		".$text['label-version']." \n";
@@ -401,12 +424,13 @@
 			echo "</tr>\n";
 
 			echo "</table>\n";
+			echo "</div>\n";
 		}
-		echo "<br /><br />";
 	}
 
 //memcache information
 	if (permission_exists("system_view_memcache") && file_exists($_SERVER["PROJECT_ROOT"]."/app/sip_status/app_config.php")){
+		echo "<div class='card'>\n";
 		echo "<table width='100%' border='0' cellpadding='7' cellspacing='0'>\n";
 		echo "	<tr>\n";
 		echo "		<th class='th' colspan='2' align='left'>".$text['title-memcache']."</th>\n";
@@ -430,24 +454,39 @@
 		}
 
 		echo "</table>\n";
-		echo "<br /><br />\n";
+		echo "</div>\n";
 	}
 
 	if (permission_exists("system_view_support")) {
+		$system_support = "- Application\n";
+		$system_support .= "  - version ".$system_information['version']."\n";
+		$system_support .= "  - branch ".$system_information['git']['branch']."\n";
+		$system_support .= "  - path ".$system_information['path']."\n";
+		$system_support .= "- PHP\n";
+		$system_support .= "  - version ".$system_information['php']['version']."\n";
+		if (isset($system_information['switch']['version'])) {
+			$system_support .= "- Switch\n";
+			$system_support .= "  - version ".$system_information['switch']['version']."\n";
+		}
+		$system_support .= "- Database\n";
+		$system_support .= "  - name ".$system_information['database']['name']."\n";
+		$system_support .= "  - version ".$system_information['database']['version']."\n";
+		$system_support .= "- Operating System\n";
+		$system_support .= "  - name ".$system_information['os']['name']."\n";
+		$system_support .= "  - version ".$system_information['os']['version']."\n";
+
+		echo "<div class='card'>\n";
 		echo "<table width='100%' border='0' cellpadding='7' cellspacing='0'>\n";
 		echo "<tr>\n";
-		echo "	<th class='th' align='left'>".$text['label-support']."</th>\n";
-		echo "	<th class='th' style='text-align: right;'>\n";
+		echo "	<th align='left' style='border-bottom: none;'>".$text['label-support']."</th>\n";
+		echo "	<th style='text-align: right; padding-right: 0; border-bottom: none;'>\n";
 		echo "		<button type='button' class='btn btn-default' id='btn_copy' alt=\"".$text['label-copy']."\" title=\"".$text['label-copy']."\" onclick='do_copy();'>".$text['label-copy']."<i class='fas fa-regular fa-clipboard pl-5'></i></button>\n";
 		echo "	</th>\n";
 		echo "</tr>\n";
 		echo "<tr>\n";
-		echo "	<td width='20%' class='vncell' style='text-align: left;'>\n";
-		echo "		&nbsp;\n";
-		echo "	</td>\n";
-		echo "	<td class='row_style1'>\n";
-		echo "		<textarea class='formfld' id='system_information' name='system_information' style='display: none;'>".json_encode($system_information, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."</textarea>\n";
-		echo "		<div id='editor'></div>\n";
+		echo "	<td colspan='2' style='padding: 0;'>\n";
+		echo "		<textarea class='formfld' id='system_information' name='system_information' style='display: none;'>".escape($system_support)."</textarea>\n";
+		echo "		<div id='editor' style='border-radius: 4px;'></div>\n";
 		echo "		<table cellpadding='0' cellspacing='0' border='0' style='float: right; padding-top: 5px;'>\n";
 		echo "			<tr>\n";
 		echo "				<td valign='middle' style='padding-left: 6px;'><i class='fas fa-list-ul fa-lg ace_control' title=\"".$text['label-toggle_line_numbers']."\" onclick=\"toggle_option('numbering');\"></i></td>\n";
@@ -527,7 +566,7 @@
 		//load editor
 		echo "	var editor = ace.edit('editor');\n";
 		echo "	editor.setOptions({\n";
-		echo "		mode: 'ace/mode/json',\n";
+		//echo "		mode: 'ace/mode/json',\n";
 		echo "		theme: 'ace/theme/'+document.getElementById('theme').options[document.getElementById('theme').selectedIndex].value,\n";
 		echo "		selectionStyle: 'text',\n";
 		echo "		cursorStyle: 'smooth',\n";

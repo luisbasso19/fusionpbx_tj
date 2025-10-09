@@ -43,8 +43,8 @@
 	$text = $language->get();
 
 //get the ID
-	$xml_cdr_uuid = $_GET['id'];
-	$action = $_GET['a'];
+	$xml_cdr_uuid = $_GET['id'] ?? '';
+	$action = $_GET['a'] ?? '';
 
 //get the cdr json from the database
 	$sql = "select * from v_xml_cdr_logs ";
@@ -57,7 +57,6 @@
 		$parameters['domain_uuid'] = $domain_uuid;
 	}
 	$parameters['xml_cdr_uuid'] = $xml_cdr_uuid;
-	$database = new database;
 	$row = $database->select($sql, $parameters, 'row');
 	if (!empty($row) && is_array($row) && @sizeof($row) != 0) {
 		$log_content = trim($row["log_content"]);
@@ -135,14 +134,15 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['label-call_log']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'style'=>'margin-left: 15px;','link'=>'xml_cdr_details.php?id='.$xml_cdr_uuid]);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'style'=>'margin-left: 15px;','link'=>'xml_cdr_details.php?id='.$xml_cdr_uuid]);
 	if (permission_exists('log_download')) {
-		echo button::create(['type'=>'button','label'=>$text['button-download'],'icon'=>$_SESSION['theme']['button_icon_download'],'style'=>'margin-left: 15px;','link'=>'xml_cdr_log.php?id='.$xml_cdr_uuid.'&a=download']);
+		echo button::create(['type'=>'button','label'=>$text['button-download'],'icon'=>$settings->get('theme', 'button_icon_download'),'style'=>'margin-left: 15px;','link'=>'xml_cdr_log.php?id='.$xml_cdr_uuid.'&a=download']);
 	}
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' cellpadding='0' cellspacing='0' border='0'>\n";
 	echo "	<tr>\n";
 	echo "		<td style='background-color: #1c1c1c; padding: 8px; text-align: left;'>";
@@ -188,7 +188,7 @@
 	}
 
 	// output according to ordinal selected
-	if ($_POST['sort'] == 'desc') {
+	if (isset($_POST['sort']) && $_POST['sort'] == 'desc') {
 		$array_output = array_reverse($array_output);
 		$adj_index = 0;
 	}
@@ -199,7 +199,7 @@
 		foreach ($array_output as $index => $line) {
 			$line_num = "";
 			if ($line != "<span style='color: #fff; font-family: monospace;'></span><br>") {
-				if ($_POST['line_number']) {
+				if (isset($_POST['line_number']) && $_POST['line_number']) {
 					$line_num = "<span style='font-family: courier; color: #aaa; font-size: 10px;'>".($index + $adj_index)."&nbsp;&nbsp;&nbsp;</span>";
 				}
 				echo $line_num." ".$line;
@@ -212,9 +212,9 @@
 	echo "		</td>";
 	echo "	</tr>\n";
 	echo "</table>\n";
+	echo "</div>\n";
 
 //include the footer
 	require_once "resources/footer.php";
 
 ?>
-

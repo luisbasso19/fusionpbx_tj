@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -82,7 +82,7 @@
 		$created_by = $_POST["created_by"] ?? null;
 		$email_address = $_POST["email_address"] ?? null;
 		$account_code = $_POST["account_code"];
-		$enabled = $_POST["enabled"] ?? 'false';
+		$enabled = $_POST["enabled"];
 		$description = $_POST["description"];
 
 		//remove any pin number formatting
@@ -95,7 +95,6 @@
 	$sql .= "where domain_uuid = :domain_uuid ";
 	$sql .= "order by conference_center_name asc ";
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	$database = new database;
 	$conference_centers = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
@@ -104,7 +103,6 @@
 	$sql .= "from v_conference_profiles ";
 	$sql .= "where profile_enabled = 'true' ";
 	$sql .= "and profile_name <> 'sla' ";
-	$database = new database;
 	$conference_profiles = $database->select($sql, null, 'all');
 	unset ($sql);
 
@@ -113,16 +111,20 @@
 
 //define fucntion get_conference_pin - used to find a unique pin number
 	function get_conference_pin($length, $conference_room_uuid) {
+		//set the variable as global
+		global $database;
+
+		//get the pin number
 		$pin = generate_password($length,1);
+
+		//return an available pin number
 		$sql = "select count(*) from v_conference_rooms ";
 		$sql .= "where domain_uuid = :domain_uuid ";
 		$sql .= "and conference_room_uuid <> :conference_room_uuid ";
 		$sql .= "and (moderator_pin = :pin or participant_pin = :pin) ";
 		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 		$parameters['conference_room_uuid'] = $conference_room_uuid;
-		
 		$parameters['pin'] = $pin;
-		$database = new database;
 		$num_rows = $database->select($sql, $parameters, 'column');
 		if ($num_rows == 0) {
 			return $pin;
@@ -133,18 +135,19 @@
 		unset($sql, $parameters);
 	}
 
-//record announcment
+//record the announcement
 	if (!empty($record) && $record == "true") {
 		//prepare the values
-			$default_language = 'en';
-			$default_dialect = 'us';
-			$default_voice = 'callie';
-			$switch_cmd = "conference ".$conference_room_uuid."@".$_SESSION['domain_name']." play ".$_SESSION['switch']['sounds']['dir']."/".$default_language."/".$default_dialect."/".$default_voice."/ivr/ivr-recording_started.wav";
+		$default_language = 'en';
+		$default_dialect = 'us';
+		$default_voice = 'callie';
+		$switch_cmd = "conference ".$conference_room_uuid."@".$_SESSION['domain_name']." play ".$_SESSION['switch']['sounds']['dir']."/".$default_language."/".$default_dialect."/".$default_voice."/ivr/ivr-recording_started.wav";
+
 		//connect to event socket
-			$esl = event_socket::create();
-			if ($esl->is_connected()) {
-				$switch_result = event_socket::api($switch_cmd);
-			}
+		$esl = event_socket::create();
+		if ($esl->is_connected()) {
+			$switch_result = event_socket::api($switch_cmd);
+		}
 	}
 
 //generate the pin number length
@@ -156,7 +159,6 @@
 		$parameters['conference_center_uuid'] = $conference_center_uuid;
 	}
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	$database = new database;
 	$row = $database->select($sql, $parameters, 'row');
 	if (!empty($row)) {
 		$pin_length = $row['conference_center_pin_length'];
@@ -183,15 +185,14 @@
 				$array['conference_room_users'][0]['domain_uuid'] = $_SESSION['domain_uuid'];
 
 			//un-assigne the users from the conference room
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add('conference_room_user_delete', 'temp');
 
-				$database = new database;
 				$database->app_name = 'conference_centers';
 				$database->app_uuid = '8d083f5a-f726-42a8-9ffa-8d28f848f10e';
 				$database->delete($array);
 				unset($array);
-				
+
 				$p->delete('conference_room_user_delete', 'temp');
 		}
 
@@ -232,7 +233,6 @@
 					$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 					$parameters['moderator_pin'] = $moderator_pin;
 					$parameters['conference_room_uuid'] = $conference_room_uuid ?? null;
-					$database = new database;
 					$num_rows = $database->select($sql, $parameters, 'column');
 					if ($num_rows > 0) {
 						$msg .= $text['message-unique_moderator_pin']."<br />\n";
@@ -300,16 +300,7 @@
 				if ($action == "add" && permission_exists('conference_room_add')) {
 					//set default values
 						if (empty($profile)) { $profile = 'default'; }
-						if (empty($record)) { $record = 'false'; }
 						if (empty($max_members)) { $max_members = 0; }
-						if (empty($wait_mod)) { $wait_mod = 'true'; }
-						if (empty($moderator_endconf)) { $moderator_endconf = 'false'; }
-						if (empty($announce_name)) { $announce_name = 'true'; }
-						if (empty($announce_recording)) { $announce_recording = 'true'; }
-						if (empty($announce_count)) { $announce_count = 'true'; }
-						if (empty($mute)) { $mute = 'false'; }
-						if (empty($enabled)) { $enabled = 'true'; }
-						if (empty($sounds)) { $sounds = 'false'; }
 
 					//add a conference room
 						$conference_room_uuid = uuid();
@@ -342,7 +333,6 @@
 						$array['conference_rooms'][0]['enabled'] = $enabled;
 						$array['conference_rooms'][0]['description'] = $description;
 
-						$database = new database;
 						$database->app_name = 'conference_centers';
 						$database->app_uuid = '8d083f5a-f726-42a8-9ffa-8d28f848f10e';
 						$database->save($array);
@@ -356,10 +346,9 @@
 							$array['conference_room_users'][0]['conference_room_uuid'] = $conference_room_uuid;
 							$array['conference_room_users'][0]['user_uuid'] = $_SESSION["user_uuid"];
 
-							$p = new permissions;
+							$p = permissions::new();
 							$p->add('conference_room_user_add', 'temp');
 
-							$database = new database;
 							$database->app_name = 'conference_centers';
 							$database->app_uuid = '8d083f5a-f726-42a8-9ffa-8d28f848f10e';
 							$database->save($array);
@@ -422,7 +411,6 @@
 						}
 						$array['conference_rooms'][0]['description'] = $description;
 
-						$database = new database;
 						$database->app_name = 'conference_centers';
 						$database->app_uuid = '8d083f5a-f726-42a8-9ffa-8d28f848f10e';
 						$database->save($array);
@@ -440,10 +428,9 @@
 					$array['conference_room_users'][0]['conference_room_uuid'] = $conference_room_uuid;
 					$array['conference_room_users'][0]['user_uuid'] = $user_uuid;
 
-					$p = new permissions;
+					$p = permissions::new();
 					$p->add('conference_room_user_add', 'temp');
 
-					$database = new database;
 					$database->app_name = 'conference_centers';
 					$database->app_uuid = '8d083f5a-f726-42a8-9ffa-8d28f848f10e';
 					$database->save($array);
@@ -469,7 +456,6 @@
 			$sql .= "and conference_room_uuid = :conference_room_uuid ";
 			$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 			$parameters['conference_room_uuid'] = $conference_room_uuid;
-			$database = new database;
 			$row = $database->select($sql, $parameters ?? null, 'row');
 			if (!empty($row)) {
 				$conference_center_uuid = $row["conference_center_uuid"];
@@ -507,7 +493,6 @@
 	$sql .= "order by u.username asc ";
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	$parameters['conference_room_uuid'] = $conference_room_uuid ?? '';
-	$database = new database;
 	$rows = $database->select($sql, $parameters ?? null, 'all');
 	if (!empty($rows)) {
 		foreach ($rows as $row) {
@@ -525,7 +510,6 @@
 	}
 	$sql .= "order by username asc ";
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	$database = new database;
 	$users = $database->select($sql, $parameters ?? null, 'all');
 	unset($sql, $parameters);
 
@@ -548,18 +532,6 @@
 		$participant_pin = substr($participant_pin, 0, 3) ."-".  substr($participant_pin, 3, 3) ."-". substr($participant_pin, -3)."\n";
 	}
 
-//set default values
-	if (empty($record)) { $record = 'false'; }
-	if (empty($max_members)) { $max_members = 0; }
-	if (empty($wait_mod)) { $wait_mod = 'true'; }
-	if (empty($moderator_endconf)) { $moderator_endconf = 'false'; }
-	if (empty($announce_name)) { $announce_name = 'true'; }
-	if (empty($announce_recording)) { $announce_recording = 'true'; }
-	if (empty($announce_count)) { $announce_count = 'true'; }
-	if (empty($mute)) { $mute = 'false'; }
-	if (empty($sounds)) { $sounds = 'false'; }
-	if (empty($enabled)) { $enabled = 'true'; }
-
 //create token
 	$object = new token;
 	$token = $object->create($_SERVER['PHP_SELF']);
@@ -574,23 +546,24 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['title-conference_room']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','link'=>'conference_rooms.php']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','link'=>'conference_rooms.php']);
 	if (!empty($conference_room_uuid) && is_uuid($conference_room_uuid)) {
 		if (permission_exists('conference_interactive_view')) {
-			echo button::create(['type'=>'button','label'=>$text['button-view'],'icon'=>$_SESSION['theme']['button_icon_view'],'style'=>'margin-left: 15px;','link'=>'../conferences_active/conference_interactive.php?c='.urlencode($conference_room_uuid)]);
+			echo button::create(['type'=>'button','label'=>$text['button-view'],'icon'=>$settings->get('theme', 'button_icon_view'),'style'=>'margin-left: 15px;','link'=>'../conferences_active/conference_interactive.php?c='.urlencode($conference_room_uuid)]);
 		}
 		else if (permission_exists('conference_active_view')) {
-			echo button::create(['type'=>'button','label'=>$text['button-view'],'icon'=>$_SESSION['theme']['button_icon_view'],'style'=>'margin-left: 15px;','link'=>'../conferences_active/conferences_active.php']);
+			echo button::create(['type'=>'button','label'=>$text['button-view'],'icon'=>$settings->get('theme', 'button_icon_view'),'style'=>'margin-left: 15px;','link'=>'../conferences_active/conferences_active.php']);
 		}
 		if (permission_exists('conference_session_view')) {
 			echo button::create(['type'=>'button','label'=>$text['button-sessions'],'icon'=>'list','link'=>'conference_sessions.php?id='.urlencode($conference_room_uuid)]);
 		}
 	}
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save','style'=>'margin-left: 15px;']);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save','style'=>'margin-left: 15px;']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -662,7 +635,7 @@
 			}
 			echo "			</select>";
 			if ($action == "update") {
-				echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add']]);
+				echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$settings->get('theme', 'button_icon_add')]);
 			}
 			unset($users);
 			echo "			<br>\n";
@@ -696,21 +669,17 @@
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>".$text['label-record']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "	<select class='formfld' name='record'>\n";
-		echo "	<option value=''></option>\n";
-		if ($record == "true") {
-			echo "	<option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
 		}
-		else {
-			echo "	<option value='true'>".$text['label-true']."</option>\n";
+		echo "		<select class='formfld' id='record' name='record'>\n";
+		echo "			<option value='false' ".($record === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "			<option value='true' ".($record === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "		</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
 		}
-		if ($record == "false") {
-			echo "	<option value='false' selected='selected'>".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "	<option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "	</select>\n";
 		echo "<br />\n";
 		echo "</td>\n";
 		echo "</tr>\n";
@@ -740,21 +709,17 @@
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>".$text['label-wait_for_moderator']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "	<select class='formfld' name='wait_mod'>\n";
-		echo "	<option value=''></option>\n";
-		if ($wait_mod == "true") {
-			echo "	<option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
 		}
-		else {
-			echo "	<option value='true'>".$text['label-true']."</option>\n";
+		echo "		<select class='formfld' id='wait_mod' name='wait_mod'>\n";
+		echo "			<option value='true' ".($wait_mod === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "			<option value='false' ".($wait_mod === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "		</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
 		}
-		if ($wait_mod == "false") {
-			echo "	<option value='false' selected='selected'>".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "	<option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "	</select>\n";
 		echo "<br />\n";
 		echo "</td>\n";
 		echo "</tr>\n";
@@ -764,21 +729,17 @@
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>".$text['label-moderator_endconf']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "	<select class='formfld' name='moderator_endconf'>\n";
-		echo "	<option value=''></option>\n";
-		if ($moderator_endconf == "true") {
-			echo "	<option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
 		}
-		else {
-			echo "	<option value='true'>".$text['label-true']."</option>\n";
+		echo "		<select class='formfld' id='moderator_endconf' name='moderator_endconf'>\n";
+		echo "			<option value='false' ".($moderator_endconf === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "			<option value='true' ".($moderator_endconf === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "		</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
 		}
-		if ($moderator_endconf == "false") {
-			echo "	<option value='false' selected='selected'>".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "	<option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "	</select>\n";
 		echo "<br />\n";
 		echo "</td>\n";
 		echo "</tr>\n";
@@ -788,21 +749,17 @@
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>".$text['label-announce_name']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "	<select class='formfld' name='announce_name'>\n";
-		echo "	<option value=''></option>\n";
-		if ($announce_name == "true") {
-			echo "	<option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
 		}
-		else {
-			echo "	<option value='true'>".$text['label-true']."</option>\n";
+		echo "		<select class='formfld' id='announce_name' name='announce_name'>\n";
+		echo "			<option value='true' ".($announce_name === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "			<option value='false' ".($announce_name === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "		</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
 		}
-		if ($announce_name == "false") {
-			echo "	<option value='false' selected='selected'>".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "	<option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "	</select>\n";
 		echo "<br />\n";
 		echo "</td>\n";
 		echo "</tr>\n";
@@ -812,21 +769,17 @@
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>".$text['label-announce_count']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "	<select class='formfld' name='announce_count'>\n";
-		echo "	<option value=''></option>\n";
-		if ($announce_count == "true") {
-			echo "	<option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
 		}
-		else {
-			echo "	<option value='true'>".$text['label-true']."</option>\n";
+		echo "		<select class='formfld' id='announce_count' name='announce_count'>\n";
+		echo "			<option value='true' ".($announce_count === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "			<option value='false' ".($announce_count === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "		</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
 		}
-		if ($announce_count == "false") {
-			echo "	<option value='false' selected='selected'>".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "	<option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "	</select>\n";
 		echo "<br />\n";
 		echo "</td>\n";
 		echo "</tr>\n";
@@ -836,21 +789,17 @@
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>".$text['label-announce_recording']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "	<select class='formfld' name='announce_recording'>\n";
-		echo "	<option value=''></option>\n";
-		if ($announce_recording == "true") {
-			echo "	<option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
 		}
-		else {
-			echo "	<option value='true'>".$text['label-true']."</option>\n";
+		echo "		<select class='formfld' id='announce_recording' name='announce_recording'>\n";
+		echo "			<option value='true' ".($announce_recording === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "			<option value='false' ".($announce_recording === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "		</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
 		}
-		if ($announce_recording == "false") {
-			echo "	<option value='false' selected='selected'>".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "	<option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "	</select>\n";
 		echo "<br />\n";
 		echo "</td>\n";
 		echo "</tr>\n";
@@ -871,21 +820,17 @@
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>".$text['label-mute']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "	<select class='formfld' name='mute'>\n";
-		echo "	<option value=''></option>\n";
-		if ($mute == "true") {
-			echo "	<option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
 		}
-		else {
-			echo "	<option value='true'>".$text['label-true']."</option>\n";
+		echo "		<select class='formfld' id='mute' name='mute'>\n";
+		echo "			<option value='false' ".($mute === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "			<option value='true' ".($mute === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "		</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
 		}
-		if ($mute == "false") {
-			echo "	<option value='false' selected='selected'>".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "	<option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "	</select>\n";
 		echo "<br />\n";
 		echo "\n";
 		echo "</td>\n";
@@ -922,17 +867,16 @@
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>".$text['label-enabled']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		if (substr($_SESSION['theme']['input_toggle_style']['text'], 0, 6) == 'switch') {
-			echo "	<label class='switch'>\n";
-			echo "		<input type='checkbox' id='enabled' name='enabled' value='true' ".($enabled == 'true' ? "checked='checked'" : null).">\n";
-			echo "		<span class='slider'></span>\n";
-			echo "	</label>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
 		}
-		else {
-			echo "	<select class='formfld' id='enabled' name='enabled'>\n";
-			echo "		<option value='true' ".($enabled == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-			echo "		<option value='false' ".($enabled == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
-			echo "	</select>\n";
+		echo "		<select class='formfld' id='enabled' name='enabled'>\n";
+		echo "			<option value='true' ".($enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "			<option value='false' ".($enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "		</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
 		}
 		echo "<br />\n";
 		echo "\n";
@@ -944,21 +888,17 @@
 		echo "<tr>\n";
 		echo "<td class='vncell' valign='top' align='left' nowrap='nowrap'>".$text['label-sounds']."</td>\n";
 		echo "<td class='vtable' align='left'>\n";
-		echo "	<select class='formfld' name='sounds'>\n";
-		echo "	<option value=''></option>\n";
-		if ($sounds == "true") {
-			echo "	<option value='true' selected='selected'>".$text['label-true']."</option>\n";
+		if ($input_toggle_style_switch) {
+			echo "	<span class='switch'>\n";
 		}
-		else {
-			echo "	<option value='true'>".$text['label-true']."</option>\n";
+		echo "		<select class='formfld' id='sounds' name='sounds'>\n";
+		echo "			<option value='false' ".($sounds === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+		echo "			<option value='true' ".($sounds === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+		echo "		</select>\n";
+		if ($input_toggle_style_switch) {
+			echo "		<span class='slider'></span>\n";
+			echo "	</span>\n";
 		}
-		if ($sounds == "false") {
-			echo "	<option value='false' selected='selected'>".$text['label-false']."</option>\n";
-		}
-		else {
-			echo "	<option value='false'>".$text['label-false']."</option>\n";
-		}
-		echo "	</select>\n";
 		echo "<br />\n";
 		echo "\n";
 		echo "</td>\n";
@@ -975,6 +915,7 @@
 	echo "</tr>\n";
 
 	echo "</table>\n";
+	echo "</div>\n";
 	echo "<br><br>\n";
 
 	if ($action == "update") {

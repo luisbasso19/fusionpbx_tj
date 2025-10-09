@@ -20,6 +20,7 @@
 		$apps[$x]['description']['fr-fr'] = "Les conferences servent à configurer des salles avec un nom, une description et un code pin facultatif";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "კონფერენციები გამოიყენება სახელით, აღწერით და არასავალდებულო PIN-კოდით კონფერენციების ოთახის მოსარგებად.";
 		$apps[$x]['description']['nl-nl'] = "Conferenties worden gebruikt om gespreksruimtes op te zetten met een naam omschrijving en optionele PIN code.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "";
@@ -34,7 +35,7 @@
 		$apps[$x]['destinations'][$y]['type'] = "sql";
 		$apps[$x]['destinations'][$y]['label'] = "conferences";
 		$apps[$x]['destinations'][$y]['name'] = "conferences";
-		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and conference_enabled = 'true' ";
+		$apps[$x]['destinations'][$y]['where'] = "where domain_uuid = '\${domain_uuid}' and conference_enabled = true ";
 		$apps[$x]['destinations'][$y]['order_by'] = "natural_sort(conference_extension) asc";
 		$apps[$x]['destinations'][$y]['field']['conference_uuid'] = "conference_uuid";
 		$apps[$x]['destinations'][$y]['field']['uuid'] = "conference_uuid";
@@ -99,6 +100,16 @@
 		$apps[$x]['permissions'][$y]['name'] = "conference_destinations";
 		$apps[$x]['permissions'][$y]['groups'][] = "superadmin";
 		$apps[$x]['permissions'][$y]['groups'][] = "admin";
+
+	//default settings
+		$y=0;
+		$apps[$x]['default_settings'][$y]['default_setting_uuid'] = "dbc34323-28ca-45b2-a3e1-b74f8ed54b7c";
+		$apps[$x]['default_settings'][$y]['default_setting_category'] = "conference";
+		$apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "extension_range";
+		$apps[$x]['default_settings'][$y]['default_setting_name'] = "text";
+		$apps[$x]['default_settings'][$y]['default_setting_value'] = "200-299";
+		$apps[$x]['default_settings'][$y]['default_setting_enabled'] = "false";
+		$apps[$x]['default_settings'][$y]['default_setting_description'] = "Set the suggested extension range(s) for simple conferences";
 
 	//cache details
 		$apps[$x]['cache']['key'] = "dialplan.\${domain_name}";
@@ -177,7 +188,7 @@
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "conference_enabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "Select whether to enable or disable the conference.";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name'] = "insert_date";

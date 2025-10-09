@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2023
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -56,7 +56,6 @@
 	$var_value = '';
 	$var_command = '';
 	$var_hostname = '';
-	$var_enabled = '';
 	$var_order = '';
 	$var_description = '';
 
@@ -67,7 +66,7 @@
 		$var_value = trim($_POST["var_value"]);
 		$var_command = trim($_POST["var_command"]);
 		$var_hostname = trim($_POST["var_hostname"]);
-		$var_enabled = trim($_POST["var_enabled"] ?? 'false');
+		$var_enabled = $_POST["var_enabled"];
 		$var_order = trim($_POST["var_order"]);
 		$var_description = trim($_POST["var_description"]);
 
@@ -98,7 +97,7 @@
 			if (empty($var_name)) { $msg .= $text['message-required'].$text['label-name']."<br>\n"; }
 			//if (empty($var_value)) { $msg .= $text['message-required'].$text['label-value']."<br>\n"; }
 			//if (empty($var_command)) { $msg .= $text['message-required'].$text['label-command']."<br>\n"; }
-			if (empty($var_enabled)) { $msg .= $text['message-required'].$text['label-enabled']."<br>\n"; }
+			//if (empty($var_enabled)) { $msg .= $text['message-required'].$text['label-enabled']."<br>\n"; }
 			if (empty($var_order)) { $msg .= $text['message-required'].$text['label-order']."<br>\n"; }
 			if (!empty($msg) && empty($_POST["persistformvar"])) {
 				require_once "resources/header.php";
@@ -142,9 +141,6 @@
 						$array['vars'][0]['var_description'] = $var_description;
 
 					//execute insert/update
-						$database = new database;
-						$database->app_name = 'vars';
-						$database->app_uuid = '54e08402-c1b8-0a9d-a30a-f569fc174dd8';
 						$database->save($array);
 						unset($array);
 
@@ -168,7 +164,6 @@
 		$sql = "select * from v_vars ";
 		$sql .= "where var_uuid = :var_uuid ";
 		$parameters['var_uuid'] = $var_uuid;
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (is_array($row) && @sizeof($row) != 0) {
 			$var_category = $row["var_category"];
@@ -182,9 +177,6 @@
 		}
 		unset($sql, $parameters);
 	}
-
-//set the defaults
-	if (empty($var_enabled)) { $var_enabled = 'true'; }
 
 //create token
 	$object = new token;
@@ -200,12 +192,13 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['header-variable']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'vars.php']);
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'vars.php']);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' border='0' cellpadding='0' cellspacing='0'>\n";
 
 	echo "<tr>\n";
@@ -284,17 +277,16 @@
 	echo "    ".$text['label-enabled']."\n";
 	echo "</td>\n";
 	echo "<td class='vtable' align='left'>\n";
-	if (substr($_SESSION['theme']['input_toggle_style']['text'], 0, 6) == 'switch') {
-		echo "	<label class='switch'>\n";
-		echo "		<input type='checkbox' id='var_enabled' name='var_enabled' value='true' ".($var_enabled == 'true' ? "checked='checked'" : null).">\n";
-		echo "		<span class='slider'></span>\n";
-		echo "	</label>\n";
+	if ($input_toggle_style_switch) {
+		echo "	<span class='switch'>\n";
 	}
-	else {
-		echo "	<select class='formfld' id='var_enabled' name='var_enabled'>\n";
-		echo "		<option value='true' ".($var_enabled == 'true' ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
-		echo "		<option value='false' ".($var_enabled == 'false' ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
-		echo "	</select>\n";
+	echo "	<select class='formfld' id='var_enabled' name='var_enabled'>\n";
+	echo "		<option value='true' ".($var_enabled === true ? "selected='selected'" : null).">".$text['option-true']."</option>\n";
+	echo "		<option value='false' ".($var_enabled === false ? "selected='selected'" : null).">".$text['option-false']."</option>\n";
+	echo "	</select>\n";
+	if ($input_toggle_style_switch) {
+		echo "		<span class='slider'></span>\n";
+		echo "	</span>\n";
 	}
 	echo "<br />\n";
 	echo $text['description-enabled']."\n";
@@ -338,10 +330,13 @@
 	echo "</td>\n";
 	echo "</tr>\n";
 
+	echo "</table>\n";
+	echo "</div>\n";
+
+
 	//if variable is a code then show the codec info
 	if ($var_name == "global_codec_prefs" || $var_name == "outbound_codec_prefs") {
-		echo "<tr>\n";
-		echo "<td align='left' colspan='2'>\n";
+		echo "<div class='card'>\n";
 		echo "<br />\n";
 		echo "<b>".$text['label-codec_information']."</b><br><br>\n";
 		echo "Module must be compiled and loaded. &nbsp; &nbsp; codecname[@8000h|16000h|32000h[@XXi]]<br />\n";
@@ -407,11 +402,8 @@
 		echo "	</td>\n";
 		echo "	</tr>\n";
 		echo "	</table>\n";
-		echo "</td>";
-		echo "</tr>";
+		echo "</div>\n";
 	}
-
-	echo "</table>";
 	echo "<br><br>";
 
 	if ($action == "update") {

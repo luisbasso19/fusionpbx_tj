@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2022
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -48,8 +48,9 @@
 	$menu_item_link = '';
 	$menu_item_category = '';
 	$menu_item_icon = '';
+	$menu_item_icon_color = '';
 	$menu_item_description = '';
-	$menu_item_protected = '';
+	//$menu_item_protected = '';
 	$menu_item_parent_uuid = null;
 	$menu_item_order = null;
 
@@ -68,19 +69,29 @@
 	}
 
 //delete the group from the menu item
-	if ($action == "delete" && permission_exists("menu_delete") && is_uuid($menu_item_group_uuid)) {
-		//delete the group from the users
-		$array['menu_item_groups'][0]['menu_item_group_uuid'] = $menu_item_group_uuid;
-		$database = new database;
-		$database->app_name = 'menu';
-		$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
-		$database->delete($array);
-		unset($array);
+	if (!empty($_POST["action"]) && $_POST["action"] === "delete" && permission_exists("menu_item_group_delete") && is_uuid($_POST["menu_item_group_uuid"])) {
+		//get the uuid
+			$menu_item_group_uuid = $_POST['menu_item_group_uuid'];
+
+		//validate the token
+			$token = new token;
+			if (!$token->validate($_SERVER['PHP_SELF'])) {
+				message::add($text['message-invalid_token'],'negative');
+				header('Location: menu.php');
+				exit;
+			}
+
+		//delete the group from the menu item
+			$array['menu_item_groups'][0]['menu_item_group_uuid'] = $menu_item_group_uuid;
+			$database->app_name = 'menu';
+			$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
+			$database->delete($array);
+			unset($array);
 
 		//redirect the browser
-		message::add($text['message-delete']);
-		header("Location: menu_item_edit.php?id=".urlencode($menu_uuid)."&menu_item_uuid=".urlencode($menu_item_uuid)."&menu_uuid=".urlencode($menu_uuid));
-		return;
+			message::add($text['message-delete']);
+			header("Location: menu_item_edit.php?id=".urlencode($menu_uuid)."&menu_item_uuid=".urlencode($menu_item_uuid)."&menu_uuid=".urlencode($menu_uuid));
+			return;
 	}
 
 //action add or update
@@ -100,8 +111,9 @@
 		$menu_item_link = $_POST["menu_item_link"] ?? '';
 		$menu_item_category = $_POST["menu_item_category"] ?? '';
 		$menu_item_icon = $_POST["menu_item_icon"] ?? '';
+		$menu_item_icon_color = $_POST["menu_item_icon_color"] ?? '';
 		$menu_item_description = $_POST["menu_item_description"] ?? '';
-		$menu_item_protected = $_POST["menu_item_protected"] ?? '';
+		//$menu_item_protected = $_POST["menu_item_protected"] ?? '';
 		$menu_item_parent_uuid = $_POST["menu_item_parent_uuid"] ?? null;
 		$menu_item_order = $_POST["menu_item_order"] ?? '';
 	}
@@ -148,7 +160,6 @@
 				$sql = "select menu_language from v_menus ";
 				$sql .= "where menu_uuid = :menu_uuid ";
 				$parameters['menu_uuid'] = $menu_uuid;
-				$database = new database;
 				$menu_language = $database->select($sql, $parameters, 'column');
 				unset($sql, $parameters);
 
@@ -160,7 +171,6 @@
 					$sql .= "order by menu_item_order desc ";
 					$sql .= "limit 1 ";
 					$parameters['menu_uuid'] = $menu_uuid;
-					$database = new database;
 					$highest_menu_item_order = $database->select($sql, $parameters, 'column');
 					unset($sql, $parameters);
 				}
@@ -173,8 +183,9 @@
 					$array['menu_items'][0]['menu_item_link'] = $menu_item_link;
 					$array['menu_items'][0]['menu_item_category'] = $menu_item_category;
 					$array['menu_items'][0]['menu_item_icon'] = $menu_item_icon;
+					$array['menu_items'][0]['menu_item_icon_color'] = $menu_item_icon_color;
 					$array['menu_items'][0]['menu_item_description'] = $menu_item_description;
-					$array['menu_items'][0]['menu_item_protected'] = $menu_item_protected;
+					//$array['menu_items'][0]['menu_item_protected'] = $menu_item_protected;
 					$array['menu_items'][0]['menu_item_uuid'] = $menu_item_uuid;
 					if (!is_uuid($menu_item_parent_uuid)) {
 						$array['menu_items'][0]['menu_item_parent_uuid'] = null;
@@ -185,7 +196,6 @@
 					}
 					$array['menu_items'][0]['menu_item_add_user'] = $_SESSION["username"];
 					$array['menu_items'][0]['menu_item_add_date'] = 'now()';
-					$database = new database;
 					$database->app_name = 'menu';
 					$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
 					$database->save($array);
@@ -199,8 +209,9 @@
 					$array['menu_items'][0]['menu_item_link'] = $menu_item_link;
 					$array['menu_items'][0]['menu_item_category'] = $menu_item_category;
 					$array['menu_items'][0]['menu_item_icon'] = $menu_item_icon;
+					$array['menu_items'][0]['menu_item_icon_color'] = $menu_item_icon_color;
 					$array['menu_items'][0]['menu_item_description'] = $menu_item_description;
-					$array['menu_items'][0]['menu_item_protected'] = $menu_item_protected;
+					//$array['menu_items'][0]['menu_item_protected'] = $menu_item_protected;
 					$array['menu_items'][0]['menu_item_uuid'] = $menu_item_uuid;
 					if (!is_uuid($menu_item_parent_uuid)) {
 						$array['menu_items'][0]['menu_item_parent_uuid'] = null;
@@ -211,7 +222,6 @@
 					}
 					$array['menu_items'][0]['menu_item_add_user'] = $_SESSION["username"];
 					$array['menu_items'][0]['menu_item_add_date'] = 'now()';
-					$database = new database;
 					$database->app_name = 'menu';
 					$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
 					$database->save($array);
@@ -219,14 +229,13 @@
 				}
 
 			//update child menu items to protected true or false
-				$sql = "update v_menu_items ";
-				$sql .= "set menu_item_protected = :menu_item_protected ";
-				$sql .= "where menu_item_parent_uuid = :menu_item_parent_uuid ";
-				$parameters['menu_item_parent_uuid'] = $menu_item_uuid;
-				$parameters['menu_item_protected'] = $menu_item_protected;
-				$database = new database;
-				$database->execute($sql, $parameters);
-				unset($parameters);
+				//$sql = "update v_menu_items ";
+				//$sql .= "set menu_item_protected = :menu_item_protected ";
+				//$sql .= "where menu_item_parent_uuid = :menu_item_parent_uuid ";
+				//$parameters['menu_item_parent_uuid'] = $menu_item_uuid;
+				//$parameters['menu_item_protected'] = $menu_item_protected;
+				//$database->execute($sql, $parameters);
+				//unset($parameters);
 
 			//add a group to the menu
 				if (!empty($group_uuid_name) && permission_exists('menu_add')) {
@@ -241,7 +250,6 @@
 							$array['menu_item_groups'][0]['menu_item_uuid'] = $menu_item_uuid;
 							$array['menu_item_groups'][0]['group_name'] = $group_name;
 							$array['menu_item_groups'][0]['group_uuid'] = $group_uuid;
-							$database = new database;
 							$database->app_name = 'menu';
 							$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
 							$database->save($array);
@@ -256,7 +264,6 @@
 					$sql .= "and menu_language = :menu_language ";
 					$parameters['menu_item_uuid'] = $menu_item_uuid;
 					$parameters['menu_language'] = $menu_language;
-					$database = new database;
 					$num_rows = $database->select($sql, $parameters, 'column');
 					if ($num_rows == 0) {
 						$array['menu_languages'][0]['menu_language_uuid'] = uuid();
@@ -264,7 +271,6 @@
 						$array['menu_languages'][0]['menu_item_uuid'] = $menu_item_uuid;
 						$array['menu_languages'][0]['menu_language'] = $menu_language;
 						$array['menu_languages'][0]['menu_item_title'] = $menu_item_title;
-						$database = new database;
 						$database->app_name = 'menu';
 						$database->app_uuid = 'f4b3b3d2-6287-489c-2a00-64529e46f2d7';
 						$database->save($array);
@@ -280,7 +286,6 @@
 						$parameters['menu_uuid'] = $menu_uuid;
 						$parameters['menu_item_uuid'] = $menu_item_uuid;
 						$parameters['menu_language'] = $menu_language;
-						$database = new database;
 						$database->execute($sql, $parameters);
 					}
 					unset($sql, $parameters, $num_rows);
@@ -314,15 +319,15 @@
 		$sql .= "and menu_item_uuid = :menu_item_uuid ";
 		$parameters['menu_uuid'] = $menu_uuid;
 		$parameters['menu_item_uuid'] = $menu_item_uuid;
-		$database = new database;
 		$row = $database->select($sql, $parameters, 'row');
 		if (is_array($row) && sizeof($row) != 0) {
 			$menu_item_title = $row["menu_item_title"];
 			$menu_item_link = $row["menu_item_link"];
 			$menu_item_category = $row["menu_item_category"];
 			$menu_item_icon = $row["menu_item_icon"];
+			$menu_item_icon_color = $row["menu_item_icon_color"];
 			$menu_item_description = $row["menu_item_description"];
-			$menu_item_protected = $row["menu_item_protected"];
+			//$menu_item_protected = $row["menu_item_protected"];
 			$menu_item_parent_uuid = $row["menu_item_parent_uuid"];
 			$menu_item_order = $row["menu_item_order"];
 			$menu_item_add_user = $row["menu_item_add_user"];
@@ -341,7 +346,6 @@
 	$sql .= "and menu_item_parent_uuid is null ";
 	$sql .= "order by menu_item_order asc ";
 	$parameters['menu_uuid'] = $menu_uuid;
-	$database = new database;
 	$menu_item_parents = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
@@ -360,7 +364,6 @@
 	$sql .= "	g.group_name asc ";
 	$parameters['menu_uuid'] = $menu_uuid;
 	$parameters['menu_item_uuid'] = $menu_item_uuid;
-	$database = new database;
 	$menu_item_groups = $database->select($sql, $parameters, 'all');
 	unset($sql, $parameters);
 
@@ -383,7 +386,6 @@
 		$sql .= "and group_uuid not in ('".implode("','",$assigned_groups)."') ";
 	}
 	$sql .= "order by domain_uuid desc, group_name asc ";
-	$database = new database;
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 	$groups = $database->select($sql, $parameters, 'all');
 	unset($sql, $sql_where, $parameters);
@@ -401,12 +403,13 @@
 	echo "<div class='action_bar' id='action_bar'>\n";
 	echo "	<div class='heading'><b>".$text['header-menu_item']."</b></div>\n";
 	echo "	<div class='actions'>\n";
-	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$_SESSION['theme']['button_icon_back'],'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'menu_edit.php?id='.urlencode($menu_uuid)]);
-	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$_SESSION['theme']['button_icon_save'],'id'=>'btn_save']);
+	echo button::create(['type'=>'button','label'=>$text['button-back'],'icon'=>$settings->get('theme', 'button_icon_back'),'id'=>'btn_back','style'=>'margin-right: 15px;','link'=>'menu_edit.php?id='.urlencode($menu_uuid)]);
+	echo button::create(['type'=>'submit','label'=>$text['button-save'],'icon'=>$settings->get('theme', 'button_icon_save'),'id'=>'btn_save']);
 	echo "	</div>\n";
 	echo "	<div style='clear: both;'></div>\n";
 	echo "</div>\n";
 
+	echo "<div class='card'>\n";
 	echo "<table width='100%' cellpadding='0' cellspacing='0'>\n";
 
 	echo "	<tr>";
@@ -433,44 +436,56 @@
 	echo "	<tr>";
 	echo "		<td class='vncell'>".$text['label-icon']."</td>";
 	echo "		<td class='vtable' style='vertical-align: bottom;'>";
-	if (file_exists($_SERVER["PROJECT_ROOT"].'/resources/fontawesome/fas_icons.php')) {
-		include 'resources/fontawesome/fas_icons.php';
-		if (is_array($font_awesome_solid_icons) && @sizeof($font_awesome_solid_icons) != 0) {
-			// rebuild and sort array
-			foreach ($font_awesome_solid_icons as $i => $icon_class) {
-				$icon_label = str_replace('fa-', '', $icon_class);
-				$icon_label = str_replace('-', ' ', $icon_label);
-				$icon_label = ucwords($icon_label);
-				$icons[$icon_class] = $icon_label;
-			}
-			asort($icons, SORT_STRING);
-			echo "<table cellpadding='0' cellspacing='0' border='0'>\n";
-			echo "	<tr>\n";
-			echo "		<td>\n";
-			echo "			<select class='formfld' name='menu_item_icon' id='menu_item_icon' onchange=\"$('#icons').slideUp(); $('#grid_icon').fadeIn();\">\n";
-			echo "				<option value=''></option>\n";
-			foreach ($icons as $icon_class => $icon_label) {
-				$selected = ($menu_item_icon == $icon_class) ? "selected" : null;
-				echo "			<option value='".escape($icon_class)."' ".$selected.">".escape($icon_label)."</option>\n";
-			}
-			echo "			</select>\n";
-			echo "		</td>\n";
-			echo "		<td style='padding: 0 0 0 5px;'>\n";
-			echo "			<button id='grid_icon' type='button' class='btn btn-default list_control_icon' style='font-size: 15px; padding-top: 1px; padding-left: 3px;' onclick=\"$('#icons').fadeIn(); $(this).fadeOut();\"><span class='fas fa-th'></span></button>";
-			echo "		</td>\n";
-			echo "	</tr>\n";
-			echo "</table>\n";
-			echo "<div id='icons' style='clear: both; display: none; margin-top: 8px; padding-top: 10px; color: #000; max-height: 400px; overflow: auto;'>\n";
-			foreach ($icons as $icon_class => $icon_label) {
-				echo "<span class='fas ".escape($icon_class)." fa-fw' style='font-size: 24px; float: left; margin: 0 8px 8px 0; cursor: pointer; opacity: 0.3;' title='".escape($icon_label)."' onclick=\"$('#menu_item_icon').val('".escape($icon_class)."'); $('#icons').slideUp(); $('#grid_icon').fadeIn();\" onmouseover=\"this.style.opacity='1';\" onmouseout=\"this.style.opacity='0.3';\"></span>\n";
-			}
-			echo "</div>";
+	if (file_exists($_SERVER["PROJECT_ROOT"].'/resources/fontawesome/fa_icons.php')) {
+		include $_SERVER["PROJECT_ROOT"].'/resources/fontawesome/fa_icons.php';
+	}
+	if (!empty($font_awesome_icons) && is_array($font_awesome_icons)) {
+		echo "<table cellpadding='0' cellspacing='0' border='0'>\n";
+		echo "	<tr>\n";
+		echo "		<td>\n";
+		echo "			<select class='formfld' name='menu_item_icon' id='selected_icon' onchange=\"if ($(this).val()) { $('#icons').slideUp(200); $('#icon_search').fadeOut(200, function() { $('#grid_icon').fadeIn(); }); $('#icon_color').show(); } else { $('#icon_color').hide(); }\">\n";
+		echo "				<option value=''></option>\n";
+		foreach ($font_awesome_icons as $icon) {
+			$selected = $menu_item_icon == implode(' ', $icon['classes']) ? "selected" : null;
+			echo "			<option value='".escape(implode(' ', $icon['classes']))."' ".$selected.">".escape($icon['label'])."</option>\n";
 		}
+		echo "			</select>\n";
+		echo "		</td>\n";
+		echo "		<td style='padding: 0 0 0 5px;'>\n";
+		echo "			<button id='grid_icon' type='button' class='btn btn-default list_control_icon' style='font-size: 15px; padding-top: 1px; padding-left: 3px;' onclick=\"load_icons(); $(this).fadeOut(200, function() { $('#icons').fadeIn(200); $('#icon_search').fadeIn(200).focus(); });\"><span class='fa-solid fa-th'></span></button>";
+		echo "			<input id='icon_search' type='text' class='formfld' style='display: none;' onkeyup=\"if (this.value.length >= 3) { delay_submit(this.value); } else if (this.value == '') { load_icons(); } else { $('#icons').html(''); }\" placeholder=\"".$text['label-search']."\">\n";
+		echo "		</td>\n";
+		echo "	</tr>\n";
+		echo "</table>\n";
+		echo "<div id='icons' style='clear: both; display: none; margin-top: 8px; padding-top: 10px; color: #000; max-height: 400px; overflow: auto;'></div>";
+
+		echo "<script>\n";
+		//load icons by search
+		echo "function load_icons(search) {\n";
+		echo "	xhttp = new XMLHttpRequest();\n";
+		echo "	xhttp.open('GET', '".PROJECT_PATH."/resources/fontawesome/fa_icons.php?output=icons' + (search ? '&search=' + search : ''), false);\n";
+		echo "	xhttp.send();\n";
+		echo "	document.getElementById('icons').innerHTML = xhttp.responseText;\n";
+		echo "}\n";
+		//delay kepress action for 1/2 second
+		echo "var keypress_timer;\n";
+		echo "function delay_submit(search) {\n";
+		echo "	clearTimeout(keypress_timer);\n";
+		echo "	keypress_timer = setTimeout(function(){\n";
+		echo "		load_icons(search);\n";
+		echo "	}, 500);\n";
+		echo "}\n";
+		echo "</script>\n";
 	}
 	else {
 		echo "		<input type='text' class='formfld' name='menu_item_icon' value='".escape($menu_item_icon)."'>";
 	}
 	echo "		</td>";
+	echo "	</tr>";
+
+	echo "	<tr id='icon_color' ".(empty($menu_item_icon) ? "style='display: none;'" : null).">";
+	echo "		<td class='vncell'>".$text['label-icon_color']."</td>";
+	echo "		<td class='vtable'><input type='text' class='formfld colorpicker' name='menu_item_icon_color' value=\"".escape($menu_item_icon_color)."\"></td>";
 	echo "	</tr>";
 
 	echo "	<tr>";
@@ -495,18 +510,25 @@
 	echo "		<td class='vtable'>";
 	if (!empty($menu_item_groups) && sizeof($menu_item_groups) != 0) {
 		echo "<table cellpadding='0' cellspacing='0' border='0'>\n";
+		if (permission_exists('menu_item_group_delete')) {
+			echo "	<input type='hidden' id='action' name='action' value=''>\n";
+			echo "	<input type='hidden' id='menu_item_group_uuid' name='menu_item_group_uuid' value=''>\n";
+		}
+		$x = 0;
 		foreach($menu_item_groups as $field) {
 			if (!empty($field['group_name'])) {
 				echo "<tr>\n";
 				echo "	<td class='vtable' style='white-space: nowrap; padding-right: 30px;' nowrap='nowrap'>";
 				echo $field['group_name'].((!empty($field['group_domain_uuid'])) ? "@".$_SESSION['domains'][$field['group_domain_uuid']]['domain_name'] : null);
 				echo "	</td>\n";
-				if (permission_exists('group_member_delete') || if_group("superadmin")) {
+				if (permission_exists('menu_item_group_delete')) {
 					echo "	<td class='list_control_icons' style='width: 25px;'>";
-					echo 		"<a href='menu_item_edit.php?id=".escape($field['menu_uuid'])."&menu_item_group_uuid=".escape($field['menu_item_group_uuid'])."&menu_item_uuid=".escape($menu_item_uuid)."&a=delete' alt='".$text['button-delete']."' onclick=\"return confirm('".$text['confirm-delete']."')\">".$v_link_label_delete."</a>";
+					echo button::create(['type'=>'button','icon'=>'fas fa-minus','id'=>'btn_delete','class'=>'default list_control_icon','name'=>'btn_delete','onclick'=>"modal_open('modal-delete-group-$x','btn_delete');"]);
+					echo modal::create(['id'=>'modal-delete-group-'.$x,'type'=>'delete','actions'=>button::create(['type'=>'button','label'=>$text['button-continue'],'icon'=>'check','id'=>'btn_delete','style'=>'float: right; margin-left: 15px;','collapse'=>'never','onclick'=>"modal_close(); list_action_set('delete'); document.getElementById('menu_item_group_uuid').value = '".escape($field['menu_item_group_uuid'])."'; list_form_submit('frm');"])]);
 					echo "	</td>";
 				}
 				echo "</tr>\n";
+				$x++;
 			}
 		}
 		echo "</table>\n";
@@ -523,34 +545,34 @@
 			}
 		}
 		echo "</select>";
-		echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$_SESSION['theme']['button_icon_add'],'collapse'=>'never']);
+		echo button::create(['type'=>'submit','label'=>$text['button-add'],'icon'=>$settings->get('theme', 'button_icon_add'),'collapse'=>'never']);
 	}
 	echo "		</td>";
 	echo "	</tr>";
 
-	echo "<tr>\n";
-	echo "<td class='vncell' valign='top' align='left' nowrap>\n";
-	echo "    ".$text['label-protected']."\n";
-	echo "</td>\n";
-	echo "<td class='vtable' align='left'>\n";
-	echo "    <select class='formfld' name='menu_item_protected'>\n";
-	if ($menu_item_protected == "false") {
-		echo "    <option value='false' selected='selected' >".$text['label-false']."</option>\n";
-	}
-	else {
-		echo "    <option value='false'>".$text['label-false']."</option>\n";
-	}
-	if ($menu_item_protected == "true") {
-		echo "    <option value='true' selected='selected' >".$text['label-true']."</option>\n";
-	}
-	else {
-		echo "    <option value='true'>".$text['label-true']."</option>\n";
-	}
-	echo "    </select><br />\n";
-	echo $text['description-protected']."<br />\n";
-	echo "\n";
-	echo "</td>\n";
-	echo "</tr>\n";
+	//echo "<tr>\n";
+	//echo "<td class='vncell' valign='top' align='left' nowrap>\n";
+	//echo "    ".$text['label-protected']."\n";
+	//echo "</td>\n";
+	//echo "<td class='vtable' align='left'>\n";
+	//echo "    <select class='formfld' name='menu_item_protected'>\n";
+	//if ($menu_item_protected == "false") {
+	//	echo "    <option value='false' selected='selected' >".$text['label-false']."</option>\n";
+	//}
+	//else {
+	//	echo "    <option value='false'>".$text['label-false']."</option>\n";
+	//}
+	//if ($menu_item_protected == "true") {
+	//	echo "    <option value='true' selected='selected' >".$text['label-true']."</option>\n";
+	//}
+	//else {
+	//	echo "    <option value='true'>".$text['label-true']."</option>\n";
+	//}
+	//echo "    </select><br />\n";
+	//echo $text['description-protected']."<br />\n";
+	//echo "\n";
+	//echo "</td>\n";
+	//echo "</tr>\n";
 
 	if (!empty($action) && $action == "update") {
 		if (empty($menu_item_parent_uuid)) {
@@ -567,6 +589,7 @@
 	echo "	</tr>";
 
 	echo "</table>";
+	echo "</div>";
 	echo "<br><br>";
 
 	if (permission_exists('menu_add') || permission_exists('menu_edit')) {

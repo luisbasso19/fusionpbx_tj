@@ -25,14 +25,19 @@
 */
 
 //define the databases class
-if (!class_exists('databases')) {
 	class databases {
+
+		/**
+		 * declare constant variables
+		 */
+		const app_name = 'databases';
+		const app_uuid = '8d229b6d-1383-fcec-74c6-4ce1682479e2';
 
 		/**
 		 * declare private variables
 		 */
-		private $app_name;
-		private $app_uuid;
+
+		private $database;
 		private $permission_prefix;
 		private $list_page;
 		private $table;
@@ -44,12 +49,15 @@ if (!class_exists('databases')) {
 		public function __construct() {
 
 			//assign private variables
-				$this->app_name = 'databases';
-				$this->app_uuid = '8d229b6d-1383-fcec-74c6-4ce1682479e2';
-				$this->permission_prefix = 'database_';
-				$this->list_page = 'databases.php';
-				$this->table = 'databases';
-				$this->uuid_prefix = 'database_';
+			$this->permission_prefix = 'database_';
+			$this->list_page = 'databases.php';
+			$this->table = 'databases';
+			$this->uuid_prefix = 'database_';
+
+			//connect to the database
+			if (empty($this->database)) {
+				$this->database = database::new();
+			}
 
 		}
 
@@ -85,10 +93,7 @@ if (!class_exists('databases')) {
 							if (is_array($array) && @sizeof($array) != 0) {
 
 								//execute delete
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->delete($array);
+									$this->database->delete($array);
 									unset($array);
 
 								//set message
@@ -131,8 +136,7 @@ if (!class_exists('databases')) {
 							if (is_array($uuids) && @sizeof($uuids) != 0) {
 								$sql = "select * from v_".$this->table." ";
 								$sql .= "where ".$this->uuid_prefix."uuid in (".implode(', ', $uuids).") ";
-								$database = new database;
-								$rows = $database->select($sql, $parameters ?? null, 'all');
+								$rows = $this->database->select($sql, $parameters ?? null, 'all');
 								if (is_array($rows) && @sizeof($rows) != 0) {
 									foreach ($rows as $x => $row) {
 
@@ -152,10 +156,8 @@ if (!class_exists('databases')) {
 							if (is_array($array) && @sizeof($array) != 0) {
 
 								//save the array
-									$database = new database;
-									$database->app_name = $this->app_name;
-									$database->app_uuid = $this->app_uuid;
-									$database->save($array);
+
+									$this->database->save($array);
 									unset($array);
 
 								//set message
@@ -169,6 +171,3 @@ if (!class_exists('databases')) {
 		}
 
 	}
-}
-
-?>

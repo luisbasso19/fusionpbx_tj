@@ -14,13 +14,14 @@
 	$apps[$x]['menu'][$y]['title']['fr-fr'] = "Liste Noire";
 	$apps[$x]['menu'][$y]['title']['he-il'] = "חסימת מספר";
 	$apps[$x]['menu'][$y]['title']['it-it'] = "Blocco Chiamate";
+	$apps[$x]['menu'][$y]['title']['ka-ge'] = "ზარების დაბლოკვა";
 	$apps[$x]['menu'][$y]['title']['nl-nl'] = "Oproep blokkade";
 	$apps[$x]['menu'][$y]['title']['pl-pl'] = "Blokowanie rozmów";
 	$apps[$x]['menu'][$y]['title']['pt-br'] = "Bloqueio de chamadas";
 	$apps[$x]['menu'][$y]['title']['pt-pt'] = "Bloqueio de Chamadas";
 	$apps[$x]['menu'][$y]['title']['ro-ro'] = "Blocare apel";
 	$apps[$x]['menu'][$y]['title']['ru-ru'] = "Черный список";
-	$apps[$x]['menu'][$y]['title']['sv-se'] = "Blockera Samtal";
+	$apps[$x]['menu'][$y]['title']['sv-se'] = "Blockera samtal";
 	$apps[$x]['menu'][$y]['title']['uk-ua'] = "Блокування дзвінків";
 	$apps[$x]['menu'][$y]['title']['zh-cn'] = "呼叫块";
 	$apps[$x]['menu'][$y]['title']['ja-jp'] = "コール ブロック";

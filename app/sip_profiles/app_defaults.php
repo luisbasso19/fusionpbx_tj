@@ -17,7 +17,7 @@
 
 	The Initial Developer of the Original Code is
 	Mark J Crane <markjcrane@fusionpbx.com>
-	Portions created by the Initial Developer are Copyright (C) 2008-2016
+	Portions created by the Initial Developer are Copyright (C) 2008-2025
 	the Initial Developer. All Rights Reserved.
 
 	Contributor(s):
@@ -29,36 +29,20 @@
 
 		//add the sip profiles to the database
 			$sql = "select count(*) from v_sip_profiles ";
-			$database = new database;
 			$num_rows = $database->select($sql, null, 'column');
 			unset($sql);
 
 			if ($num_rows == 0) {
-				if (file_exists('/usr/share/examples/fusionpbx/resources/templates/conf/sip_profiles')) {
-					$sip_profile_dir = '/usr/share/examples/fusionpbx/resources/templates/conf/sip_profiles/*.xml.noload';
-				}
-				elseif (file_exists('/usr/local/share/fusionpbx/resources/templates/conf/sip_profiles')) {
-					$sip_profile_dir = '/usr/local/share/fusionpbx/resources/templates/conf/sip_profiles/*.xml.noload';
-				}
-				elseif (file_exists('/usr/local/www/fusionpbx/app/switch/resources/conf/sip_profiles')) {
-					$sip_profile_dir = '/usr/local/www/fusionpbx/app/switch/resources/conf/sip_profiles/*.xml.noload';
-				}
-				elseif (file_exists('/var/www/fusionpbx/app/switch/resources/conf/sip_profiles')) {
-					$sip_profile_dir = '/var/www/fusionpbx/app/switch/resources/conf/sip_profiles/*.xml.noload';
-				}
-				else {
-					$sip_profile_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/switch/resources/conf/sip_profiles/*.xml.noload';
-				}
+				$sip_profile_dir = dirname(__DIR__, 2).'/app/switch/resources/conf/sip_profiles/*.xml.noload';
 				$xml_files = glob($sip_profile_dir);
-				foreach ($xml_files as $x => &$xml_file) {
+				foreach ($xml_files as $x => $xml_file) {
 					//load the sip profile xml and save it into an array
 					$sip_profile_xml = file_get_contents($xml_file);
 					$xml = simplexml_load_string($sip_profile_xml);
 					$json = json_encode($xml);
 					$sip_profile = json_decode($json, true);
 					$sip_profile_name = $sip_profile['@attributes']['name'];
-					$sip_profile_enabled = $sip_profile['@attributes']['enabled'];
-					//echo "sip profile name: ".$sip_profile_name."\n";
+					$sip_profile_enabled = $sip_profile['@attributes']['enabled'] ?? 'true';
 
 					if ($sip_profile_name != "{v_sip_profile_name}") {
 
@@ -87,12 +71,13 @@
 							}
 
 						//add the sip profile if it is not false
-							if ($sip_profile_enabled != "false") {
+							if ($sip_profile_enabled != 'false') {
 
 								//add profile name and description
 									$sip_profile_uuid = uuid();
 									$array['sip_profiles'][$x]['sip_profile_uuid'] = $sip_profile_uuid;
 									$array['sip_profiles'][$x]['sip_profile_name'] = $sip_profile_name;
+									$array['sip_profiles'][$x]['sip_profile_enabled'] = $sip_profile_enabled;
 									$array['sip_profiles'][$x]['sip_profile_description'] = $sip_profile_description;
 
 								//add the sip profile domains name, alias and parse
@@ -110,7 +95,7 @@
 										$array['sip_profiles'][$x]['sip_profile_settings'][$y]['sip_profile_uuid'] = $sip_profile_uuid;
 										$array['sip_profiles'][$x]['sip_profile_settings'][$y]['sip_profile_setting_name'] = $row['@attributes']['name'];
 										$array['sip_profiles'][$x]['sip_profile_settings'][$y]['sip_profile_setting_value'] = $row['@attributes']['value'];
-										$array['sip_profiles'][$x]['sip_profile_settings'][$y]['sip_profile_setting_enabled'] = $row['@attributes']['enabled'] != 'false' ? 'true' : $row['@attributes']['enabled'];
+										$array['sip_profiles'][$x]['sip_profile_settings'][$y]['sip_profile_setting_enabled'] = $row['@attributes']['enabled'] ?? 'true';
 									}
 
 							}
@@ -121,13 +106,12 @@
 				//execute inserts
 					if (!empty($array)) {
 						//grant temporary permissions
-							$p = new permissions;
+							$p = permissions::new();
 							$p->add('sip_profile_add', 'temp');
 							$p->add('sip_profile_domain_add', 'temp');
 							$p->add('sip_profile_setting_add', 'temp');
 
 						//execute insert
-							$database = new database;
 							$database->app_name = 'sip_profiles';
 							$database->app_uuid = '159a8da8-0e8c-a26b-6d5b-19c532b6d470';
 							$database->save($array, false);
@@ -147,28 +131,13 @@
 
 		//upgrade - add missing sip profiles domain settings
 			$sql = "select count(*) from v_sip_profile_domains ";
-			$database = new database;
 			$num_rows = $database->select($sql, null, 'column');
 			unset($sql);
 
 			if ($num_rows == 0) {
-				if (file_exists('/usr/share/examples/fusionpbx/resources/templates/conf/sip_profiles')) {
-					$sip_profile_dir = '/usr/share/examples/fusionpbx/resources/templates/conf/sip_profiles/*.xml.noload';
-				}
-				elseif (file_exists('/usr/local/share/fusionpbx/resources/templates/conf/sip_profiles')) {
-					$sip_profile_dir = '/usr/local/share/fusionpbx/resources/templates/conf/sip_profiles/*.xml.noload';
-				}
-				elseif (file_exists('/usr/local/www/fusionpbx/app/switch/resources/conf/sip_profiles')) {
-					$sip_profile_dir = '/usr/local/www/fusionpbx/app/switch/resources/conf/sip_profiles/*.xml.noload';
-				}
-				elseif (file_exists('/var/www/fusionpbx/app/switch/resources/conf/sip_profiles')) {
-					$sip_profile_dir = '/var/www/fusionpbx/app/switch/resources/conf/sip_profiles/*.xml.noload';
-				}
-				else {
-					$sip_profile_dir = $_SERVER["DOCUMENT_ROOT"].PROJECT_PATH.'/app/switch/resources/conf/sip_profiles/*.xml.noload';
-				}
+				$sip_profile_dir = dirname(__DIR__, 2).'/app/switch/resources/conf/sip_profiles/*.xml.noload';
 				$xml_files = glob($sip_profile_dir);
-				foreach ($xml_files as $x => &$xml_file) {
+				foreach ($xml_files as $x => $xml_file) {
 					//load the sip profile xml and save it into an array
 						$sip_profile_xml = file_get_contents($xml_file);
 						$xml = simplexml_load_string($sip_profile_xml);
@@ -181,7 +150,6 @@
 						$sql = "select sip_profile_uuid from v_sip_profiles ";
 						$sql .= "where sip_profile_name = :sip_profile_name ";
 						$parameters['sip_profile_name'] = $sip_profile_name;
-						$database = new database;
 						$sip_profile_uuid = $database->select($sql, $parameters, 'column');
 						unset($sql, $parameters);
 
@@ -202,11 +170,10 @@
 				//execute inserts
 					if (!empty($array)) {
 						//grant temporary permissions
-							$p = new permissions;
+							$p = permissions::new();
 							$p->add('sip_profile_domain_add', 'temp');
 
 						//execute insert
-							$database = new database;
 							$database->app_name = 'sip_profiles';
 							$database->app_uuid = '159a8da8-0e8c-a26b-6d5b-19c532b6d470';
 							$database->save($array, false);
@@ -221,13 +188,10 @@
 
 			}
 
-
 		//if empty, set enabled to true
 			$sql = "update v_sip_profiles set ";
-			$sql .= "sip_profile_enabled = 'true' ";
+			$sql .= "sip_profile_enabled = true ";
 			$sql .= "where sip_profile_enabled is null ";
-			$sql .= "or sip_profile_enabled = '' ";
-			$database = new database;
 			$database->execute($sql);
 			unset($sql);
 

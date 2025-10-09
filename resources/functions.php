@@ -18,14 +18,29 @@
 
 	  The Initial Developer of the Original Code is
 	  Mark J Crane <markjcrane@fusionpbx.com>
-	  Portions created by the Initial Developer are Copyright (C) 2008-2022
+	  Portions created by the Initial Developer are Copyright (C) 2008-2025
 	  the Initial Developer. All Rights Reserved.
 
 	  Contributor(s):
 	  Mark J Crane <markjcrane@fusionpbx.com>
-	  Tim Fry <tim.fry@hotmail.com>
+	  Tim Fry <tim@fusionpbx.com>
 	  Luis Daniel Lucio Quiroz <dlucio@okay.com.mx>
 	*/
+
+	if (!function_exists('str_contains')) {
+		/**
+		 * Determine if a string contains a given substring
+		 * <p>Performs a case-sensitive check indicating if <b>needle</b> is contained in <b>haystack</b>.</p>
+		 * @param string $haystack The string to search in.
+		 * @param string $needle The substring to search for in the <b>haystack</b>.
+		 * @return bool Returns <i>true</i> if <b>needle</b> is in <b>haystack</b>, <i>false</i> otherwise
+		 * @link https://www.php.net/manual/en/function.str-contains.php Official PHP documentation
+		 * @see str_ends_with(), str_starts_with(), strpos(), stripos(), strrpos(), strripos(), strstr(), strpbrk(), substr(), preg_match()
+		 */
+		function str_contains(string $haystack, string $needle): bool {
+			return strpos($haystack, $needle) !== false;
+		}
+	}
 
 	if (!function_exists('str_starts_with')) {
 		/**
@@ -116,13 +131,35 @@
 
 	if (!function_exists('check_cidr')) {
 
+		/**
+		 * Checks if the $ip_address is within the range of the given $cidr
+		 * @param string|array $cidr
+		 * @param string $ip_address
+		 * @return bool return true if the IP address is in CIDR or if it is empty
+		 */
 		function check_cidr($cidr, $ip_address) {
-			if (isset($cidr) && !empty($cidr)) {
-				list ($subnet, $mask) = explode('/', $cidr);
-				return ( ip2long($ip_address) & ~((1 << (32 - $mask)) - 1) ) == ip2long($subnet);
-			} else {
-				return false;
+
+			//no cidr restriction
+			if (empty($cidr)) {
+				return true;
 			}
+
+			//check to see if the user's remote address is in the cidr array
+			if (is_array($cidr)) {
+			    	//cidr is an array
+				foreach ($cidr as $value) {
+					if (check_cidr($value, $ip_address)) {
+						return true;
+					}
+				}
+			} else {
+				//cidr is a string
+				list ($subnet, $mask) = explode('/', $cidr);
+				return (ip2long($ip_address) & ~((1 << (32 - $mask)) - 1)) == ip2long($subnet);
+			}
+
+			//value not found in cidr
+			return false;
 		}
 
 	}
@@ -149,12 +186,11 @@
 		function uuid() {
 			$uuid = null;
 			if (PHP_OS === 'FreeBSD') {
-				$uuid = trim(shell_exec("uuid -v 4"));
+				$uuid = trim(shell_exec("uuidgen"));
 				if (is_uuid($uuid)) {
 					return $uuid;
 				} else {
-					echo "Please install the following package.\n";
-					echo "pkg install ossp-uuid\n";
+					echo "Please install uuidgen.\n";
 					exit;
 				}
 			}
@@ -167,7 +203,7 @@
 					if (is_uuid($uuid)) {
 						return $uuid;
 					} else {
-						echo "Please install the uuidgen.\n";
+						echo "Please install uuidgen.\n";
 						exit;
 					}
 				}
@@ -306,7 +342,7 @@
 			//set default false
 			$result = false;
 			//search for the permission
-			if (count($_SESSION["groups"]) > 0) {
+			if (isset($_SESSION['groups']) && count($_SESSION["groups"]) > 0) {
 				foreach ($_SESSION["groups"] as $row) {
 					if ($row['group_name'] == $group) {
 						$result = true;
@@ -323,8 +359,10 @@
 	//check if the permission exists
 	if (!function_exists('permission_exists')) {
 
-		function permission_exists($permission_name, $operator = 'or') {
-			$permission = new permissions;
+		function permission_exists($permission_name) {
+			global $domain_uuid, $user_uuid;
+			$database = database::new();
+			$permission = permissions::new($database, $domain_uuid, $user_uuid);
 			return $permission->exists($permission_name);
 		}
 
@@ -348,7 +386,7 @@
 			global $domain_uuid;
 			$sql = "select * from v_user_groups ";
 			$sql .= "where group_name = 'superadmin' ";
-			$database = new database;
+			$database = database::new();
 			$result = $database->select($sql, null, 'all');
 			$superadmin_list = "||";
 			if (is_array($result) && @sizeof($result) != 0) {
@@ -393,7 +431,7 @@
 			$sql = "select distinct(" . $field_name . ") as " . $field_name . " ";
 			$sql .= "from " . $table_name . " " . $sql_where_optional . " ";
 			$sql .= "order by " . (!empty($sql_order_by) ? $sql_order_by : $field_name . ' asc');
-			$database = new database;
+			$database = database::new();
 			$result = $database->select($sql, null, 'all');
 			if (is_array($result) && @sizeof($result) != 0) {
 				foreach ($result as $field) {
@@ -441,7 +479,7 @@
 				$sql = "select distinct(" . $field_name . ") as " . $field_name . " from " . $table_name . " " . $sql_where_optional . " ";
 			}
 
-			$database = new database;
+			$database = database::new();
 			$result = $database->select($sql, null, 'all');
 			if (is_array($result) && @sizeof($result) != 0) {
 				foreach ($result as $field) {
@@ -681,7 +719,7 @@
 			$sql .= "and username = :username ";
 			$parameters['domain_uuid'] = $domain_uuid;
 			$parameters['username'] = $username;
-			$database = new database;
+			$database = database::new();
 			$num_rows = $database->select($sql, $parameters, 'column');
 			return $num_rows > 0 ? true : false;
 		}
@@ -698,7 +736,7 @@
 			$sql .= "and username = :username ";
 			$parameters['domain_uuid'] = $domain_uuid;
 			$parameters['username'] = $username;
-			$database = new database;
+			$database = database::new();
 			$user_uuid = $database->select($sql, $parameters, 'column');
 			unset($sql, $parameters);
 
@@ -709,7 +747,7 @@
 				$sql .= "and user_uuid = :user_uuid ";
 				$parameters['domain_uuid'] = $domain_uuid;
 				$parameters['user_uuid'] = $user_uuid;
-				$database = new database;
+				$database = database::new();
 				$num_rows = $database->select($sql, $parameters, 'column');
 				unset($sql, $parameters);
 
@@ -722,10 +760,10 @@
 					$array['extension_users'][$x]['extension_uuid'] = $extension_uuid;
 					$array['extension_users'][$x]['user_uuid'] = $row["user_uuid"];
 					//grant temporary permissions
-					$p = new permissions;
+					$p = permissions::new();
 					$p->add('extension_user_add', 'temp');
 					//execute insert
-					$database = new database;
+					$database = database::new();
 					$database->app_name = 'function-add_extension_user';
 					$database->app_uuid = 'e68d9689-2769-e013-28fa-6214bf47fca3';
 					$database->save($array);
@@ -771,11 +809,11 @@
 				$array['user_groups'][0]['user_uuid'] = $user_uuid;
 
 				//grant temporary permissions
-				$p = new permissions;
+				$p = permissions::new();
 				$p->add('user_add', 'temp');
 				$p->add('user_group_add', 'temp');
 				//execute insert
-				$database = new database;
+				$database = database::new();
 				$database->app_name = 'function-user_add';
 				$database->app_uuid = '15a8d74b-ac7e-4468-add4-3e6ebdcb8e22';
 				$database->save($array);
@@ -844,7 +882,7 @@
 		if (is_numeric(trim($phone_number ?? '', ' +'))) {
 			if (isset($_SESSION["format"]["phone"])) {
 				$phone_number = trim($phone_number, ' +');
-				foreach ($_SESSION["format"]["phone"] as &$format) {
+				foreach ($_SESSION["format"]["phone"] as $format) {
 					$format_count = substr_count($format, 'x');
 					$format_count = $format_count + substr_count($format, 'R');
 					$format_count = $format_count + substr_count($format, 'r');
@@ -1044,19 +1082,23 @@
 
 //check password strength against requirements (if any)
 	function check_password_strength($password, $text, $type = 'default') {
+
+		//initialize the settigns object
+		$settings = new settings(['database' => $database, 'domain_uuid' => $_SESSION['domain_uuid']]);
+
 		if (!empty($password)) {
 			if ($type == 'default') {
-				$req['length'] = $_SESSION['extension']['password_length']['numeric'];
-				$req['number'] = ($_SESSION['extension']['password_number']['boolean'] == 'true') ? true : false;
-				$req['lowercase'] = ($_SESSION['extension']['password_lowercase']['boolean'] == 'true') ? true : false;
-				$req['uppercase'] = ($_SESSION['extension']['password_uppercase']['boolean'] == 'true') ? true : false;
-				$req['special'] = ($_SESSION['extension']['password_special']['boolean'] == 'true') ? true : false;
+				$req['length'] = $settings->get('extension', 'password_length', '10');
+				$req['number'] = $settings->get('extension', 'password_number', true);
+				$req['lowercase'] = $settings->get('extension', 'password_lowercase', true);
+				$req['uppercase'] = $settings->get('extension', 'password_uppercase', false);
+				$req['special'] = $settings->get('extension', 'password_special', false);
 			} elseif ($type == 'user') {
-				$req['length'] = $_SESSION['user']['password_length']['numeric'];
-				$req['number'] = ($_SESSION['user']['password_number']['boolean'] == 'true') ? true : false;
-				$req['lowercase'] = ($_SESSION['user']['password_lowercase']['boolean'] == 'true') ? true : false;
-				$req['uppercase'] = ($_SESSION['user']['password_uppercase']['boolean'] == 'true') ? true : false;
-				$req['special'] = ($_SESSION['user']['password_special']['boolean'] == 'true') ? true : false;
+				$req['length'] = $settings->get('users', 'password_length', '10');
+				$req['number'] = $settings->get('users', 'password_number', true);
+				$req['lowercase'] = $settings->get('users', 'password_lowercase', true);
+				$req['uppercase'] = $settings->get('users', 'password_uppercase', false);
+				$req['special'] = $settings->get('users', 'password_special', false);
 			}
 			if (is_numeric($req['length']) && $req['length'] != 0 && !preg_match_all('$\S*(?=\S{' . $req['length'] . ',})\S*$', $password)) { // length
 				$msg_errors[] = $req['length'] . '+ ' . $text['label-characters'];
@@ -1995,7 +2037,7 @@
 
 		function get_countries() {
 			$sql = "select * from v_countries order by country asc";
-			$database = new database;
+			$database = database::new();
 			$result = $database->select($sql, null, 'all');
 			unset($sql);
 
@@ -2024,20 +2066,37 @@
 		return false;
 	}
 
-//escape user data
-	function escape($string) {
-		if (is_string($string)) {
-			return htmlentities($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-		} elseif (is_numeric($string)) {
-			return $string;
-		} else {
-			$string = (array) $string;
-			if (isset($string[0])) {
-				return htmlentities($string[0], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-			}
+/**
+ * Escape the user data
+ * <p>Escapes all characters that have HTML character entity
+ * @param string $string the value to escape
+ * @return string
+ * @link https://www.php.net/htmlentities
+ */
+function escape($string) {
+	if (is_string($string)) {
+		return htmlentities($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+	} elseif (is_numeric($string)) {
+		return $string;
+	} else {
+		$string = (array) $string;
+		if (isset($string[0])) {
+			return htmlentities($string[0], ENT_QUOTES | ENT_HTML5, 'UTF-8');
 		}
-		return false;
 	}
+	return false;
+}
+
+/**
+ * Escape the user data for a textarea
+ * <p>Escapes & " ' < and > characters</p>
+ * @param string $string the value to escape
+ * @return string
+ * @link https://www.php.net/htmlspecialchars
+ */
+function escape_textarea($string) {
+	return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
+}
 
 //output pre-formatted array keys and values
 	if (!function_exists('view_array')) {
@@ -2113,7 +2172,7 @@
 //define email button (src: https://buttons.cm)
 	if (!function_exists('email_button')) {
 
-		function email_button($text = 'Click Here!', $link = URL, $bg_color = '#dddddd', $fg_color = '#000000', $radius = '') {
+		function email_button($text = 'Click Here!', $link = 'URL', $bg_color = '#dddddd', $fg_color = '#000000', $radius = '') {
 
 			// default button radius
 			$radius = !empty($radius) ? $radius : '3px';
@@ -2355,16 +2414,42 @@
 if (!function_exists('git_pull')) {
 	function git_pull($path) {
 
+		//set the realpath
+		$path = realpath($path);
+
+		//return false if the path is invalid or inaccessible
+		if ($path === false) {
+			return false;
+		}
+
+		//add the safe.directory
+		if (is_git_safe_directory($path)) {
+			$command = 'git config --global --add safe.directory '.escapeshellarg($path);
+			exec($command);
+		}
+
+		//set the original working directory
 		$cwd = getcwd();
+
+		//set the new working directory
 		chdir($path);
+
+		//specify how to reconcile divergent branches
+		exec('git config pull.rebase false');
+
+		//git pull
 		exec("GIT_SSH_COMMAND='ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no' git pull 2>&1", $response_source_update);
 
+		//set the default update status
 		$update_status = false;
 
+		//return false
 		if (sizeof($response_source_update) == 0) {
+			chdir($cwd);
 			return array('result' => false, 'message' => null);
 		}
 
+		//set the update_status boolean value
 		foreach ($response_source_update as $response_line) {
 			if (substr_count($response_line, "Updating ") > 0 || substr_count($response_line, "Already up to date.") > 0) {
 				$update_status = true;
@@ -2375,26 +2460,73 @@ if (!function_exists('git_pull')) {
 				break;
 			}
 		}
+
+		//set the original working directory
 		chdir($cwd);
 
+		//return the array
 		return array('result' => $update_status,
 				'message' => $response_source_update);
 
 	}
 }
 
-//git is repository
+/**
+ * Check if the given directory is in the array of git safe directories.
+ *
+ * @param string $directory The directory to check.
+ * @return bool Returns true if the directory is safe, false otherwise.
+ */
+function is_git_safe_directory($directory) {
+
+	// Set the project root
+	$project_root = dirname(__DIR__, 1);
+	//echo "project_root $project_root\n";
+
+	// Define an array of safe directories
+	$safe_directories = [];
+	$safe_directories[] = $project_root.'/app/bulk_account_settings';
+	$safe_directories[] = $project_root.'/app/call_center_summary';
+	$safe_directories[] = $project_root.'/app/conference_cdr';
+	$safe_directories[] = $project_root.'/app/device_logs';
+	$safe_directories[] = $project_root.'/app/dialplan_tools';
+	$safe_directories[] = $project_root.'/app/edit';
+	$safe_directories[] = $project_root.'/app/invoices';
+	$safe_directories[] = $project_root.'/app/maintenance';
+	$safe_directories[] = $project_root.'/app/messages';
+	$safe_directories[] = $project_root.'/app/providers';
+	$safe_directories[] = $project_root.'/app/speech';
+	$safe_directories[] = $project_root.'/app/sql_query';
+	$safe_directories[] = $project_root.'/app/transcribe';
+
+	// Normalize the directory path
+	$normalized_directory = realpath($directory);
+
+	// Check if the normalized directory is in the list of safe directories
+	return in_array($normalized_directory, $safe_directories);
+}
+
+//git repo validation
 if (!function_exists('is_git_repo')) {
 	function is_git_repo($path) {
-		if(!is_dir($path)) {return false;}
-		$cwd = $_SERVER["PROJECT_ROOT"];
-		chdir($path);
-		exec("git rev-parse --show-toplevel", $git_repo, $git_repo_response);
-		chdir($cwd);
-		if ((is_array($git_repo) && count($git_repo) > 0) && ($git_repo[0] != $cwd) && $git_repo_response == 0) {
-			return $git_repo[0];
+		//normalize the path
+		$path = realpath($path);
+
+		//return false if the path is invalid or inaccessible
+		if ($path === false) {
+			return false;
 		}
-		return false;
+
+		//check if the .git directory exists in the given path
+		$result = is_dir($path . '/.git');
+
+		//return false if not a git repo
+		if ($result === false) {
+			return false;
+		}
+
+		//return the path if it is a repo
+		return is_dir($path . '/.git');
 	}
 }
 
@@ -2402,31 +2534,38 @@ if (!function_exists('is_git_repo')) {
 if (!function_exists('git_repo_info')) {
 	function git_repo_info($path) {
 
+		//return false if the path is invalid or inaccessible
 		if(!is_dir($path)) {
 			return false;
 		}
 
+		//get the current working directory
 		$cwd = getcwd();
+
+		//set the new working directory
 		chdir($path);
 
-		//get current branch
+		//get the current branch
 		exec("git rev-parse --abbrev-ref HEAD 2>&1", $git_branch, $git_branch_return);
 		$repo['branch'] = $git_branch[0];
 
-		//get current commit id
+		//get the current commit id
 		exec("git log --pretty=format:'%H' -n 1 2>&1", $git_commit, $git_commit_return);
 		$repo['commit'] = $git_commit[0];
 
-		//get remote origin url for updates
+		//get the remote origin url for updates
 		exec("git config --get remote.origin.url", $git_url);
 		$repo['url'] = preg_replace('/\.git$/', '', $git_url[0] );
 
+		//add the path to the repo array
 		$repo['path'] = $path;
 
 		//to-do detect remote over ssh and reformat to equivalent https url
 
+		//set the working directory to the original directory
 		chdir($cwd);
 
+		//return the result
 		if (!$git_branch_return && !$git_commit_return && $git_url) {
 			return $repo;
 		}
@@ -2440,17 +2579,93 @@ if (!function_exists('git_repo_info')) {
 //git locate app repositories
 if (!function_exists('git_find_repos')) {
 	function git_find_repos($path) {
+
+		//scan the directories
 		$apps = scandir($path);
+
+		//prepare the array
 		$git_repos = array();
+
+		//loop through the applicaitons
 		foreach ($apps as $app) {
-			$git_repo_name = is_git_repo($path."/".$app);
-			if ($git_repo_name != false && !empty($git_repo_name)) {
-				$git_repos[$git_repo_name][] = $app;
+			//skip this iteration of the loop
+			if ($app == '.' or $app == '..') {
+				continue;
 			}
-			unset($git_repo_name);
+
+			//build the git_repos array
+			if (is_git_repo($path."/".$app)) {
+				$git_repos[$path."/".$app][] = $app;
+			}
 		}
+
+		//return the array
 		return $git_repos;
 	}
 }
 
-?>
+//get contents of the supplied url
+if (!function_exists('url_get_contents')) {
+	function url_get_contents($URL){
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_VERBOSE, 1);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($ch, CURLOPT_URL, $URL);
+		$data = curl_exec($ch);
+		curl_close($ch);
+		return $data;
+	}
+}
+
+//get system memory details
+if (!function_exists('get_memory_details')) {
+	function get_memory_details() {
+		if (PHP_OS == 'Linux') {
+			$meminfo = file_get_contents("/proc/meminfo");
+			$data = [];
+
+			foreach (explode("\n", $meminfo) as $line) {
+				if (preg_match('/^(\w+):\s+(\d+)\skB$/', $line, $matches)) {
+					$data[$matches[1]] = $matches[2];
+				}
+			}
+
+			if (isset($data['MemTotal']) && isset($data['MemAvailable'])) {
+				$array['total_memory'] = $data['MemTotal'];
+				$array['available_memory'] = $data['MemAvailable'];
+				$array['used_memory'] = $array['total_memory'] - $array['available_memory'];
+
+				$array['memory_usage'] = ($array['used_memory'] / $array['total_memory']) * 100;
+				$array['memory_percent'] = round($array['memory_usage'], 2);
+				return $array;
+			}
+		}
+
+		if (PHP_OS == 'FreeBSD') {
+			//define the output array
+			$output = [];
+
+			// get the memory information using sysctl
+			exec('sysctl -n hw.physmem hw.pagesize vm.stats.vm.v_free_count vm.stats.vm.v_inactive_count vm.stats.vm.v_cache_count vm.stats.vm.v_wire_count', $output);
+
+			if (count($output) === 6) {
+				list($array['total_memory'], $page_size, $free_pages, $inactive_pages, $cache_pages, $wired_pages) = $output;
+
+				// total memory in bytes
+				$array['total_memory'] = (int)$array['total_memory'];
+
+				// pages to bytes conversion
+				$array['available_memory'] = ($free_pages + $inactive_pages + $cache_pages) * (int)$page_size;
+				$array['used_memory'] = $array['total_memory'] - $array['available_memory'];
+
+				// calculate memory usage percentage
+				$array['memory_usage'] = ($array['used_memory'] / $array['total_memory']) * 100;
+
+				$array['memory_percent'] = round($array['memory_usage'], 2) . '%';
+				return $array;
+			}
+		}
+
+		return false;
+	}
+}

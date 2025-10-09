@@ -78,7 +78,6 @@
 	$parameters['missed_limit'] = $missed_limit;
 	$parameters['time_zone'] = isset($_SESSION['domain']['time_zone']['name']) ? $_SESSION['domain']['time_zone']['name'] : date_default_timezone_get();
 	$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-	if (!isset($database)) { $database = new database; }
 	$result = $database->select($sql, $parameters, 'all');
 	$num_rows = !empty($result) ? sizeof($result) : 0;
 
@@ -90,112 +89,132 @@
 //missed calls
 	echo "<div class='hud_box'>\n";
 
-//add doughnut chart
-	?>
-	<div style='display: flex; flex-wrap: wrap; justify-content: center; padding-bottom: 20px;' onclick="$('#hud_missed_calls_details').slideToggle('fast');">
-		<canvas id='missed_calls_chart' width='175px' height='175px'></canvas>
-	</div>
+	echo "<div class='hud_content' ".($widget_details_state == "disabled" ?: "onclick=\"$('#hud_missed_calls_details').slideToggle('fast');\"").">\n";
+	echo "	<span class='hud_title'><a onclick=\"document.location.href='".PROJECT_PATH."/app/xml_cdr/xml_cdr.php?call_result=missed'\">".$text['label-missed_calls']."</a></span>";
 
-	<script>
-		const missed_calls_chart = new Chart(
-			document.getElementById('missed_calls_chart').getContext('2d'),
-			{
-				type: 'doughnut',
-				data: {
-					datasets: [{
-						data: ['<?php echo $num_rows; ?>', 0.00001],
-						backgroundColor: [
-							'<?php echo $_SESSION['dashboard']['missed_calls_chart_main_background_color']['text']; ?>',
-							'<?php echo $_SESSION['dashboard']['missed_calls_chart_sub_background_color']['text']; ?>'
-						],
-						borderColor: '<?php echo $_SESSION['dashboard']['missed_calls_chart_border_color']['text']; ?>',
-						borderWidth: '<?php echo $_SESSION['dashboard']['missed_calls_chart_border_width']['text']; ?>',
-						cutout: chart_cutout
-					}]
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					plugins: {
-						chart_counter: {
-							chart_text: '<?php echo $num_rows; ?>'
-						},
-						legend: {
-							display: false
-						},
-						title: {
-							display: true,
-							text: '<?php echo $text['label-missed_calls']; ?>'
+	if ($widget_chart_type == "doughnut") {
+		//add doughnut chart
+		?>
+		<div class='hud_chart'><canvas id='missed_calls_chart'></canvas></div>
+
+		<script>
+			const missed_calls_chart = new Chart(
+				document.getElementById('missed_calls_chart').getContext('2d'),
+				{
+					type: 'doughnut',
+					data: {
+						datasets: [{
+							data: ['<?php echo $num_rows; ?>', 0.00001],
+							backgroundColor: [
+								'<?php echo ($settings->get('theme', 'dashboard_missed_calls_chart_main_color') ?? '#ea4c46'); ?>',
+								'<?php echo ($settings->get('theme', 'dashboard_missed_calls_chart_sub_color') ?? '#d4d4d4'); ?>'
+							],
+							borderColor: '<?php echo $settings->get('theme', 'dashboard_chart_border_color'); ?>',
+							borderWidth: '<?php echo $settings->get('theme', 'dashboard_chart_border_width'); ?>',
+						}]
+					},
+					options: {
+						plugins: {
+							chart_number: {
+								text: '<?php echo $num_rows; ?>'
+							}
 						}
-					}
-				},
-				plugins: [chart_counter],
-			}
-		);
-	</script>
-	<?php
-
-	echo "<div class='hud_details hud_box' id='hud_missed_calls_details'>";
-	echo "<table class='tr_hover' width='100%' cellpadding='0' cellspacing='0' border='0'>\n";
-	echo "<tr>\n";
-	if ($num_rows > 0) {
-		echo "<th class='hud_heading'>&nbsp;</th>\n";
-	}
-	echo "<th class='hud_heading' width='100%'>".$text['label-cid_number']."</th>\n";
-	echo "<th class='hud_heading'>".$text['label-missed']."</th>\n";
-	echo "</tr>\n";
-
-	if ($num_rows > 0) {
-		$theme_cdr_images_exist = (
-			file_exists($theme_image_path."icon_cdr_inbound_voicemail.png") &&
-			file_exists($theme_image_path."icon_cdr_inbound_cancelled.png") &&
-			file_exists($theme_image_path."icon_cdr_local_voicemail.png") &&
-			file_exists($theme_image_path."icon_cdr_local_cancelled.png")
-			) ? true : false;
-
-		foreach ($result as $index => $row) {
-			$start_date_time = str_replace('/0','/', ltrim($row['start_date_time'], '0'));
-			if (!empty($_SESSION['domain']['time_format']) && $_SESSION['domain']['time_format']['text'] == '12h') {
-				$start_date_time = str_replace(' 0',' ', $start_date_time);
-			}
-			//set click-to-call variables
-			if (permission_exists('click_to_call_call')) {
-				$tr_link = "onclick=\"send_cmd('".PROJECT_PATH."/app/click_to_call/click_to_call.php".
-					"?src_cid_name=".urlencode($row['caller_id_name'] ?? '').
-					"&src_cid_number=".urlencode($row['caller_id_number'] ?? '').
-					"&dest_cid_name=".urlencode($_SESSION['user']['extension'][0]['outbound_caller_id_name'] ?? '').
-					"&dest_cid_number=".urlencode($_SESSION['user']['extension'][0]['outbound_caller_id_number'] ?? '').
-					"&src=".urlencode($_SESSION['user']['extension'][0]['user'] ?? '').
-					"&dest=".urlencode($row['caller_id_number'] ?? '').
-					"&rec=".(isset($_SESSION['click_to_call']['record']['boolean']) ? $_SESSION['click_to_call']['record']['boolean'] : "false").
-					"&ringback=".(isset($_SESSION['click_to_call']['ringback']['text']) ? $_SESSION['click_to_call']['ringback']['text'] : "us-ring").
-					"&auto_answer=".(isset($_SESSION['click_to_call']['auto_answer']['boolean']) ? $_SESSION['click_to_call']['auto_answer']['boolean'] : "true").
-					"');\" ".
-					"style='cursor: pointer;'";
-			}
-			echo "<tr ".$tr_link.">\n";
-			echo "<td valign='middle' class='".$row_style[$c]."' style='cursor: help; padding: 0 0 0 6px;'>\n";
-			if ($theme_cdr_images_exist) {
-				$call_result = $row['status'];
-				if (isset($row['direction'])) {
-					echo "	<img src='".PROJECT_PATH."/themes/".$_SESSION['domain']['template']['name']."/images/icon_cdr_".$row['direction']."_".$call_result.".png' width='16' style='border: none;' title='".$text['label-'.$row['direction']].": ".$text['label-'.$call_result]."'>\n";
+					},
+					plugins: [{
+						id: 'chart_number',
+						beforeDraw(chart, args, options){
+							const {ctx, chartArea: {top, right, bottom, left, width, height} } = chart;
+							ctx.font = chart_text_size + ' ' + chart_text_font;
+							ctx.textBaseline = 'middle';
+							ctx.textAlign = 'center';
+							ctx.fillStyle = '<?php echo $widget_number_text_color; ?>';
+							ctx.fillText(options.text, width / 2, top + (height / 2));
+							ctx.save();
+						}
+					}]
 				}
-			}
-			echo "</td>\n";
-			echo "<td valign='top' class='".$row_style[$c]." hud_text' nowrap='nowrap'><a href='javascript:void(0);' ".(($row['caller_id_name'] != '') ? "title=\"".$row['caller_id_name']."\"" : null).">".((is_numeric($row['caller_id_number'])) ? format_phone($row['caller_id_number']) : $row['caller_id_number'])."</td>\n";
-			echo "<td valign='top' class='".$row_style[$c]." hud_text' nowrap='nowrap'>".$start_date_time."</td>\n";
-			echo "</tr>\n";
-			$c = ($c) ? 0 : 1;
-		}
+			);
+		</script>
+		<?php
 	}
-	unset($sql, $parameters, $result, $num_rows, $index, $row);
 
-	echo "</table>\n";
-	echo "<span style='display: block; margin: 6px 0 7px 0;'><a href='".PROJECT_PATH."/app/xml_cdr/xml_cdr.php?status=missed'>".$text['label-view_all']."</a></span>\n";
-	echo "</div>";
-	//$n++;
+	//dashboard number
+	if (!isset($widget_chart_type) || $widget_chart_type == "number") {
+		echo "<span class='hud_stat'>".$num_rows."</span>";
+	}
 
-	echo "<span class='hud_expander' onclick=\"$('#hud_missed_calls_details').slideToggle('fast');\"><span class='fas fa-ellipsis-h'></span></span>";
+	//dashboard icon
+	if (!isset($widget_chart_type) || $widget_chart_type == "icon") {
+		echo "	<div style='position: relative; display: inline-block;'>\n";
+		echo "		<span class='hud_stat'><i class=\"fas ".$widget_icon." \"></i></span>\n";
+		echo "		<span style=\"background-color: ".(!empty($widget_number_background_color) ? $widget_number_background_color : '#EA4C46')."; color: ".(!empty($widget_number_text_color) ? $widget_number_text_color : '#ffffff')."; font-size: 12px; font-weight: bold; text-align: center; position: absolute; top: 23px; left: 24.5px; padding: 2px 7px 1px 7px; border-radius: 10px; white-space: nowrap;\">".$num_rows."</span>\n";
+		echo "	</div>\n";
+	}
+	echo "</div>\n";
+
+	if ($widget_details_state != 'disabled') {
+		echo "<div class='hud_details hud_box' id='hud_missed_calls_details'>";
+		echo "<table class='tr_hover' width='100%' cellpadding='0' cellspacing='0' border='0'>\n";
+		echo "<tr>\n";
+		if ($num_rows > 0) {
+			echo "<th class='hud_heading'>&nbsp;</th>\n";
+		}
+		echo "<th class='hud_heading' width='100%'>".$text['label-cid_number']."</th>\n";
+		echo "<th class='hud_heading'>".$text['label-missed']."</th>\n";
+		echo "</tr>\n";
+
+		if ($num_rows > 0) {
+			$theme_cdr_images_exist = (
+				file_exists($theme_image_path."icon_cdr_inbound_voicemail.png") &&
+				file_exists($theme_image_path."icon_cdr_inbound_cancelled.png") &&
+				file_exists($theme_image_path."icon_cdr_local_voicemail.png") &&
+				file_exists($theme_image_path."icon_cdr_local_cancelled.png")
+				) ? true : false;
+
+			foreach ($result as $index => $row) {
+				$start_date_time = str_replace('/0','/', ltrim($row['start_date_time'], '0'));
+				if (!empty($_SESSION['domain']['time_format']) && $_SESSION['domain']['time_format']['text'] == '12h') {
+					$start_date_time = str_replace(' 0',' ', $start_date_time);
+				}
+				//set click-to-call variables
+				if (permission_exists('click_to_call_call')) {
+					$tr_link = "onclick=\"send_cmd('".PROJECT_PATH."/app/click_to_call/click_to_call.php".
+						"?src_cid_name=".urlencode($row['caller_id_name'] ?? '').
+						"&src_cid_number=".urlencode($row['caller_id_number'] ?? '').
+						"&dest_cid_name=".urlencode($_SESSION['user']['extension'][0]['outbound_caller_id_name'] ?? '').
+						"&dest_cid_number=".urlencode($_SESSION['user']['extension'][0]['outbound_caller_id_number'] ?? '').
+						"&src=".urlencode($_SESSION['user']['extension'][0]['user'] ?? '').
+						"&dest=".urlencode($row['caller_id_number'] ?? '').
+						"&rec=".(filter_var($_SESSION['click_to_call']['record']['boolean'] ?? false, FILTER_VALIDATE_BOOL) ? "true" : "false").
+						"&ringback=".(isset($_SESSION['click_to_call']['ringback']['text']) ? $_SESSION['click_to_call']['ringback']['text'] : "us-ring").
+						"&auto_answer=".(filter_var($_SESSION['click_to_call']['auto_answer']['boolean'] ?? false, FILTER_VALIDATE_BOOL) ? "true" : "false").
+						"');\" ".
+						"style='cursor: pointer;'";
+				}
+				echo "<tr ".$tr_link.">\n";
+				echo "<td valign='middle' class='".$row_style[$c]."' style='cursor: help; padding: 0 0 0 6px;'>\n";
+				if ($theme_cdr_images_exist) {
+					$call_result = $row['status'];
+					if (isset($row['direction'])) {
+						echo "	<img src='".PROJECT_PATH."/themes/".$_SESSION['domain']['template']['name']."/images/icon_cdr_".$row['direction']."_".$call_result.".png' width='16' style='border: none;' title='".$text['label-'.$row['direction']].": ".$text['label-'.$call_result]."'>\n";
+					}
+				}
+				echo "</td>\n";
+				echo "<td valign='top' class='".$row_style[$c]." hud_text' nowrap='nowrap'><a href='javascript:void(0);' ".(($row['caller_id_name'] != '') ? "title=\"".$row['caller_id_name']."\"" : null).">".((is_numeric($row['caller_id_number'])) ? format_phone($row['caller_id_number']) : $row['caller_id_number'])."</td>\n";
+				echo "<td valign='top' class='".$row_style[$c]." hud_text' nowrap='nowrap'>".$start_date_time."</td>\n";
+				echo "</tr>\n";
+				$c = ($c) ? 0 : 1;
+			}
+		}
+		unset($sql, $parameters, $result, $num_rows, $index, $row);
+
+		echo "</table>\n";
+		echo "<span style='display: block; margin: 6px 0 7px 0;'><a href='".PROJECT_PATH."/app/xml_cdr/xml_cdr.php?status=missed'>".$text['label-view_all']."</a></span>\n";
+		echo "</div>";
+		//$n++;
+
+		echo "<span class='hud_expander' onclick=\"$('#hud_missed_calls_details').slideToggle('fast');\"><span class='fas fa-ellipsis-h'></span></span>";
+	}
 	echo "</div>\n";
 
 ?>

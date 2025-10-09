@@ -21,6 +21,7 @@
 		$apps[$x]['description']['fr-fr'] = "Les Modules augmentent les fonctionnalitées du système. Ici il est possible de les activer et de les désactiver.";
 		$apps[$x]['description']['he-il'] = "";
 		$apps[$x]['description']['it-it'] = "";
+		$apps[$x]['description']['ka-ge'] = "მოდულები სისტემის ფუნქციონალს აფართოებს. გამოიყენეთ ეს გვერდი მოდულების ჩასართავად ან გამოსართავად.";
 		$apps[$x]['description']['nl-nl'] = "Modules breiden de mogelijkheden van het systeem uit. Gebruikde deze pagina om modules aan/uit te zetten.";
 		$apps[$x]['description']['pl-pl'] = "";
 		$apps[$x]['description']['pt-br'] = "";
@@ -78,12 +79,12 @@
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name']['text'] = "module_enabled";
 		$apps[$x]['db'][$y]['fields'][$z]['name']['deprecated'] = "moduleenabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name']['text'] = "module_default_enabled";
 		$apps[$x]['db'][$y]['fields'][$z]['name']['deprecated'] = "moduledefaultenabled";
-		$apps[$x]['db'][$y]['fields'][$z]['type'] = "text";
+		$apps[$x]['db'][$y]['fields'][$z]['type'] = "boolean";
 		$apps[$x]['db'][$y]['fields'][$z]['description']['en-us'] = "";
 		$z++;
 		$apps[$x]['db'][$y]['fields'][$z]['name']['text'] = "module_description";
