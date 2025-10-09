@@ -354,7 +354,7 @@
 					$dialplan_xml .= "		<action application=\"ring_ready\" data=\"\"/>\n";
 					if ($settings->get('ivr_menu', 'answer', false)) {
 						$dialplan_xml .= "		<action application=\"answer\" data=\"\"/>\n";
-					}
+					//}
 					$dialplan_xml .= "		<action application=\"sleep\" data=\"1000\"/>\n";
 					$dialplan_xml .= "		<action application=\"set\" data=\"hangup_after_bridge=true\"/>\n";
 					if (!empty($ivr_menu_ringback) && $ringbacks->valid($ivr_menu_ringback)) {

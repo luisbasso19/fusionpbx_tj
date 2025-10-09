@@ -10,3 +10,7 @@ secure/*.sqlite
 *.php~
 
 app/yealink/resources/firmware/*
+app/provision/firmware/*
+app/xml_cdr/xml_cdr_statistics_inc.php_tjpr
+resources/firmware/*
+index.php_old

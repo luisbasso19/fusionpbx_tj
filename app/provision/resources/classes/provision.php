@@ -464,6 +464,7 @@
 							$templates['yealink SIP-T28P'] = 'yealink/t28p';
 							$templates['Yealink SIP-T29G'] = 'yealink/t29g';
 							$templates['yealink SIP-T29P'] = 'yealink/t29p';
+							$templates['Yealink SIP-T31G'] = 'yealink/t31g';
 							$templates['Yealink SIP-T32G'] = 'yealink/t32g';
 							$templates['Yealink SIP-T33G'] = 'yealink/t33g';
 							$templates['Yealink SIP-T38G'] = 'yealink/t38g';
@@ -1145,6 +1146,11 @@
 												case "ldap search": $device_key_type  = "11"; break;
 											}
 										}
+									}elseif ($device_vendor == "yealink"){
+											switch ($device_key_type) {
+												case "blf": $device_key_type  = "16"; break;
+
+											}
 									}
 
 								//assign the variables
@@ -1186,6 +1192,7 @@
 					$view->assign("firmware_version", $device_firmware_version);
 					$view->assign("domain_name", $domain_name);
 					$view->assign("project_path", PROJECT_PATH);
+//<<<<<<< Updated upstream
 					$view->assign("server1_address", $server1_address ?? '');
 					$view->assign("proxy1_address", $proxy1_address ?? '');
 					$view->assign("user_id", $user_id ?? '');
@@ -1195,6 +1202,17 @@
 					$view->assign("device_location", $device_location);
 					$view->assign("microtime", microtime(true));
 
+//=======
+					$view->assign("server1_address", $server1_address);
+					$view->assign("proxy1_address", $proxy1_address);
+					$view->assign("user_id",$user_id);
+					$view->assign("password",$password);
+					$view->assign("template",$device_template);
+					$view->assign("location",$device_location);
+					$view->assign("device_location",$device_location);
+					$view->assign("microtime",microtime(true));
+					$view->assign("device_description", $device_description); //incluso na migracao fusion
+//>>>>>>> Stashed changes
 				//personal ldap password
 					global $laddr_salt;
 					if (is_uuid($device_user_uuid)) {

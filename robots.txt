@@ -1,2 +1,12 @@
 User-agent: *
 Disallow: /
+
+User-agent: Yealink
+Allow: /app/provision/firmware/
+
+User-agent: Grandstream
+Allow: /app/provision/firmware/
+
+User-agent: FIP16PLUS 
+Allow: /app/provision/firmware/
+

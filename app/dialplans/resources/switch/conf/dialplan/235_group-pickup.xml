@@ -1,0 +1,18 @@
+<context name="{v_context}">
+	<extension name="group-pickup" number="*8#" continue="false" app_uuid="15332e83-12f5-44d3-8472-633736eb4b9b" order="235">
+		<condition field="destination_number" expression="^\*8#$"/>
+		<!-- if it is call from another node then needed UUID already in sip header       -->
+		<!-- So we can just do intercept without calling Lua script again on current node -->
+		<condition field="${sip_h_X-intercept_uuid}" expression="^(.+)$" break="on-true">
+			<action application="intercept" data="$1"/>
+		</condition>
+		<condition>
+			<action application="set" data="numero_chamador=${presence_id}"/>
+			<action application="lua" data="call_pickup.lua ${numero_chamador}"/>
+			<!-- <action application="set" data="grupo_de_captura=${user_data(${numero_chamador} var call_group)}"/>-->
+			<!-- <action application="answer"/> -->
+			<!-- <action application="intercept" data="${hash(select/${domain_name}-last_dial_ext/${callgroup})}"/> -->
+			<!-- <action application="sleep" data="2000"/> -->
+		</condition>
+	</extension>
+</context>
