@@ -146,6 +146,12 @@
                 destination_number = session:getVariable("destination_number")
                 rdnis = session:getVariable("rdnis")
 		queue_extension = session:getVariable("queue_extension")
+		sip_invite_failure_phrase = session:getVariable("sip_invite_failure_phrase")
+		if sip_invite_failure_phrase ~= nil then
+			freeswitch.consoleLog("INFO", "[failure_handler] sip_invite_failure_phrase: " .. tostring(sip_invite_failure_phrase) .. "\n");
+		else
+			freeswitch.consoleLog("INFO", "[failure_handler] sip_invite_failure_phrase: vazio \n");
+		end
                 ---TJPR UPDATE
 
 		if (debug["info"] == true) then
@@ -327,7 +333,9 @@
 				--handle CALL_REJECT
 				freeswitch.consoleLog("NOTICE", "[failure_handler] - CALL_REJECT - hangup()\n");
 				session:hangup();
-
+			elseif (originate_disposition == "ORIGINATOR_CANCEL") then
+				freeswitch.consoleLog("NOTICE", "[failure_handler_DEBUG] - ORIGINATOR_CANCEL - hangup(UNALLOCATED_NUMBER)\n");
+				session:hangup("ORIGINATOR_CANCEL");
 			end
 		end
 	end
