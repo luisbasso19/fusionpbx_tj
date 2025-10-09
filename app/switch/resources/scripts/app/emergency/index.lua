@@ -131,40 +131,40 @@ if (not emergency_caller_id_number or emergency_caller_id_number == '') then
 	emergency_caller_id_number = outbound_caller_id_number
 end
 
---no emergency emails found under domain, using default
-local sql = "SELECT default_setting_value ";
-	sql = sql .. "FROM v_default_settings ";
- 	sql = sql .. "WHERE default_setting_category = :category ";
+	--no emergency emails found under domain, using default
+		local sql = "SELECT default_setting_value ";
+			sql = sql .. "FROM v_default_settings ";
+ 			sql = sql .. "WHERE default_setting_category = :category ";
 	sql = sql .. "AND default_setting_subcategory = :email_address ";
-	sql = sql .. "AND default_setting_enabled = :status ";
-	sql = sql .. "LIMIT 5 ";
+			sql = sql .. "AND default_setting_enabled = :status ";
+			sql = sql .. "LIMIT 5 ";
 local params = {category = 'emergency', email_address = 'email_address', status = 't'}
-dbh:query(sql, params, function(result)
-	for key,row in pairs(result) do
-		table.insert(to, row);
-		freeswitch.consoleLog("info", "[emergency] Inserted into table from default settings " .. row .. "\n");
-	end
-	--add some details
-	if (debug["sql"]) then
-		freeswitch.consoleLog("notice", "[emergency] SQL: " .. sql .. " result " .. result .. "\n");
-	end
-end);
+		dbh:query(sql, params, function(result)
+			for key,row in pairs(result) do
+				table.insert(to, row);
+				freeswitch.consoleLog("info", "[emergency] Inserted into table from default settings " .. row .. "\n");
+			end
+			--add some details
+			if (debug["sql"]) then
+				freeswitch.consoleLog("notice", "[emergency] SQL: " .. sql .. " result " .. result .. "\n");
+			end
+		end);
 
---domain level emails max 5
-local   sql = "SELECT domain_setting_value ";
-	sql = sql .. "FROM v_domain_settings ";
-	sql = sql .. "WHERE domain_uuid = :domain_uuid ";
+	--domain level emails max 5
+		local   sql = "SELECT domain_setting_value ";
+			sql = sql .. "FROM v_domain_settings ";
+			sql = sql .. "WHERE domain_uuid = :domain_uuid ";
 	sql = sql .. "AND domain_setting_category = :category ";
 	sql = sql .. "AND domain_setting_subcategory = :email_address ";
-	sql = sql .. "AND domain_setting_enabled = :status ";
+			sql = sql .. "AND domain_setting_enabled = :status ";
 	sql = sql .. "LIMIT 5 ";
 local params = {domain_uuid = domain_uuid, category = 'emergency', email_address = 'email_address', status = 't'}
-dbh:query(sql, params, function(result)
-	for key,row in pairs(result) do
-		table.insert(to, row);
-		freeswitch.consoleLog("info", "[template] Inserted into table " .. row .. "\n");
-	end
-end);
+		dbh:query(sql, params, function(result)
+			for key,row in pairs(result) do
+				table.insert(to, row);
+				freeswitch.consoleLog("info", "[template] Inserted into table " .. row .. "\n");
+			end
+		end);
 
 --set event
 if (tonumber(destination_number) == 933) then
@@ -173,7 +173,7 @@ elseif (tonumber(destination_number) == 922) then
 	event = '922 Emergency Address Validation Service';
 elseif (tonumber(destination_number) == 911) then
 	event = '911 Emergency Call';
-end
+	end
 
 --connect to the database
 local dbh = Database.new('system');
