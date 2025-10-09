@@ -464,6 +464,7 @@
 							$templates['yealink SIP-T28P'] = 'yealink/t28p';
 							$templates['Yealink SIP-T29G'] = 'yealink/t29g';
 							$templates['yealink SIP-T29P'] = 'yealink/t29p';
+							$templates['Yealink SIP-T31G'] = 'yealink/t31g';
 							$templates['Yealink SIP-T32G'] = 'yealink/t32g';
 							$templates['Yealink SIP-T33G'] = 'yealink/t33g';
 							$templates['Yealink SIP-T38G'] = 'yealink/t38g';
@@ -1145,6 +1146,11 @@
 												case "ldap search": $device_key_type  = "11"; break;
 											}
 										}
+									}elseif ($device_vendor == "yealink"){
+											switch ($device_key_type) {
+												case "blf": $device_key_type  = "16"; break;
+
+											}
 									}
 
 								//assign the variables

@@ -1564,8 +1564,8 @@
 
 <!--  HTTP/HTTPS Password -->
 <!--  String; between ascii values 33 and 126 -->
-<!-- <P1361>{$http_auth_password}</P1361> -->
-<P1361>{$phone_provision_password}</P1361>
+<P1361>{$http_auth_password}</P1361>
+<!-- <P1361>{$phone_provision_password}</P1361> -->
 
 <!-- Firmware Upgrade Via. 0 - TFTP Upgrade,  1 - HTTP Upgrade, 2 - HTTPS Upgrade. Default is 1 -->
 <!-- Number: 0, 1, 2 -->
@@ -2357,6 +2357,8 @@
 <!-- User ID. Max length allowed is 64 characters. -->
 <!-- String -->
 <P1468></P1468>
+<P20713>1</P20713>
+
 
 </config>
 </gs_provision>
