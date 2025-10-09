@@ -31,8 +31,13 @@
 		domain_uuid = session:getVariable("domain_uuid");
 		uuid = session:getVariable("uuid");
 		destination_number = session:getVariable("destination_number");
+		--TJPR UPDATE
+		--[[removido no dia 27-01-25 para correcao do numero de origem no follow-me
 		caller_id_name = session:getVariable("caller_id_name");
-		caller_id_number = session:getVariable("caller_id_number");
+		caller_id_number = session:getVariable("caller_id_number");]]--
+		caller_id_name = session:getVariable("destination_number");
+        caller_id_number = session:getVariable("destination_number");
+		--TJPR UPDATE
 		outbound_caller_id_name = session:getVariable("outbound_caller_id_name");
 		outbound_caller_id_number = session:getVariable("outbound_caller_id_number");
 		call_direction = session:getVariable("call_direction");
