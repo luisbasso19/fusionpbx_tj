@@ -50,6 +50,11 @@
 	require "resources.functions.send_presence";
 	require "resources.functions.mkdir";
 
+--include capture from TJPR
+    local capture_function = require("capture.capture_function")
+
+
+
 --- include libs
 	local route_to_bridge = require "resources.functions.route_to_bridge"
 	local play_file   = require "resources.functions.play_file"
@@ -90,8 +95,17 @@
 			) then
 				--set the status
 					status = 'missed'
+
+				--TJPR
+				--Limpa os dados para captura
+				freeswitch.consoleLog("NOTICE", "[ring group hangup] call_group: "..tostring(call_group).."\n");
+				freeswitch.consoleLog("NOTICE", "[ring group hangup] uuid: "..tostring(uuid).."\n");
+				freeswitch.consoleLog("NOTICE", "[ring group hangup] domain_name: "..tostring(domain_name).."\n");
+				cmd = "db  delete/"..domain_name.."-captura/"..call_group.."/"..uuid
+                api:executeString(cmd)
+				--TJPR domain_name
 				--send missed call notification
-					missed();
+				missed();
 			end
 
 		--send the ring group event
@@ -190,6 +204,11 @@
 --default to local if nil
 	if (call_direction == nil) then
 		call_direction = "local";
+	end
+
+--set ring ready
+	if (session:ready()) then
+		session:execute("ring_ready", "");
 	end
 
 --define additional variables
@@ -610,6 +629,8 @@
 					else
 						sql_order = 'random() * 1000000' --both postgresql and sqlite uses random() instead of rand()
 					end
+				else
+					sql_order='d.destination_delay, d.destination_number asc'
 				end
 			end);
 
@@ -827,6 +848,7 @@
 
 		--prepare the array of destinations
 			for key, row in pairs(destinations) do
+				--determine if the user is registered if not registered then lookup
 				if (row.user_exists == "true") then
 					--get the results from sofia_contact
 					cmd = "sofia_contact */".. row.destination_number .."@" ..domain_name;
@@ -1066,6 +1088,35 @@
 							--get the extension_uuid
 							cmd = "user_data ".. destination_number .."@"..domain_name.." var extension_uuid";
 							extension_uuid = trim(api:executeString(cmd));
+							--iuoJPR UPDATE PARA CHAMAR USERNAME
+							--CODIGO USADO PARA BUSCAR ASSOCIACOES DE NOMES DE USUARIOS COM OS RAMAIS NUMERICOS
+							--A VARIAVEL SQL REALIZA A CONSULTA A TABELA DO BANCO DE DADOS QUE CONTEM A INFORMACAO DE ASSOCIACAO
+							--QUANDO A BUSCAR RETORNA DADOS ELES SAO ARMAZENADOS EM username_contact NO FORMATO URI XXXX@XXXX.XXXX.XXXX
+							--ESSA BUSCA RETORNA OS USERNAME PARA QUE OS ENDPOINTS SEJAM ENCONTRADOS ATRAVES DO COMANDO sofia_contact
+							local rows = {}
+			                        	local sql = [[
+                        				        SELECT
+				                                        vs.extension_setting_type,
+        	                			                vs.extension_setting_name,
+				                                        vs.extension_setting_value,
+                        			                	ve.extension,
+			                                	        vd.domain_name
+                        				        FROM v_extension_settings vs
+                                				JOIN v_extensions ve ON vs.extension_uuid = ve.extension_uuid
+				                                JOIN v_domains vd ON ve.domain_uuid = vd.domain_uuid
+                                				WHERE extension_setting_value = :extension_uuid
+				                                AND extension_setting_name = 'associated_uuid'
+                                				ORDER BY ve.extension
+			                        	]]
+                        				local params = { extension_uuid = extension_uuid }
+							local username_contact = {}
+							dbh:query(sql, params, function(row)
+				                                username_contact[#username_contact+1] = row.extension .. "@" .. row.domain_name
+                        				end)
+
+			                        	--dbh:release()
+							--FIM TJPR UPDATE
+
 
 							--get the hold music
 							cmd = "user_data ".. destination_number .."@"..domain_name.." var hold_music";
@@ -1075,6 +1126,22 @@
 							else
 								hold_music = default_hold_music
 							end
+							
+							--set call_group
+                                                        --tjpr update para teste de captura em grupos de chamadas
+                                                        cmd = "user_data "..row.destination_number.."@"..row.domain_name.." var call_group"
+                                                        call_group = api:executeString(cmd)
+                                                        cmd = "db  insert/"..domain_name.."-captura/"..call_group.."/"..uuid
+                                                        api:executeString(cmd)
+                                                        --freeswitch.consoleLog("NOTICE", "[ring group teste] cmd: "..tostring(cmd).."\n");
+                                                        --freeswitch.consoleLog("NOTICE", "[ring group teste] call_group: "..tostring(call_group).."\n");
+                                                        --freeswitch.consoleLog("NOTICE", "[ring group teste] uuid: "..tostring(uuid).."\n");
+							local tag = call_group.."@"..row.domain_name
+							session:consoleLog("info", "RINGGROUP_TESTE - TAG - UUID.: " .. tostring(tag) .. "--" .. tostring(uuid) .. "\n")
+                                                        capture_function.register(tag,uuid)
+
+
+							---final update tjpr
 
 							--send to user
 							local dial_string_user = "[sip_invite_domain="..domain_name..",call_direction="..call_direction..",";
@@ -1087,9 +1154,92 @@
 							dial_string_user = dial_string_user .. "presence_id=" .. row.destination_number .. "@"..domain_name..",";
 							dial_string_user = dial_string_user .. "extension_uuid="..extension_uuid..record_session.."]";
 							user_contact = api:executeString("sofia_contact */".. row.destination_number .."@" ..domain_name);
-							if (user_contact ~= "error/user_not_registered") then
-								dial_string = dial_string_user .. user_contact;
+
+							--tjpr update 20250827
+							--permite ring group chamar ramais _e_ seus multiplos registros
+
+							local user_contact_multiple = {}
+							for contato in string.gmatch(user_contact, "([^,]+)") do
+								table.insert (user_contact_multiple, contato)
 							end
+							if #user_contact_multiple > 0 then
+								for i, contato in ipairs(user_contact_multiple) do
+									if contato ~= ("error/user_not_registered") then
+										if dial_string == nil then
+											dial_string = dial_string_user .. contato
+										else
+											dial_string = dial_string .. "," .. dial_string_user .. contato
+										end
+										--session:consoleLog("info", "contact striped.: " .. tostring(contato) .. "\n");
+									end
+								end
+							else	
+								if (user_contact ~= "error/user_not_registered") then
+									dial_string = dial_string_user .. user_contact;
+								end
+							end
+							--session:consoleLog("info", "var ..timeout_name.. .: " .. tostring(timeout_name) .. "\n");
+							--session:consoleLog("info", "Dial String.: " .. tostring(dial_string) .. "\n");
+							--end tjpr update
+
+
+							--tjpr update 20250827
+							--permite a inclusao dos ramais associados na chamada do ring group
+							contacts = "";
+							if #username_contact > 0 then
+								for i, username_uri in ipairs(username_contact) do
+									--variavel se tem call forward - recuperada com o user_data
+									--verificacao condicional se tem ou nao forward
+									local call_forward_enabled = api:executeString("user_data "..username_uri.." var forward_all_enabled")
+									session:consoleLog("info", "call_forward_enabled.: " .. tostring(call_forward_enabled) .. "\n");
+									local username_contact_multiple = {}
+									if call_forward_enabled == "true" then
+										local caller_id = row.ring_group_caller_id_number;
+										local toll_allow = api:executeString("user_data "..username_uri.." var toll_allow")
+										local call_forward_destination = api:executeString("user_data "..username_uri.." var forward_all_destination")
+										contact = "[toll_allow=".. toll_allow ..",".. caller_id ..",sip_invite_domain="..domain_name;
+										contact = contact .. ",domain_name="..domain_name..",domain_uuid="..domain_uuid
+										contact = contact .. ",call_direction="..call_direction--..","..group_confirm..""..timeout_name.."="..destination_timeout
+										--contact = contact .. ","..delay_name.."="..destination_delay.."]".."loopback/" .. call_forward_destination
+										contact = contact .."]".."loopback/" .. call_forward_destination
+										session:consoleLog("info", "call_forward_enabled.: " .. tostring(contact) .. "\n");
+
+									else
+										local contact = api:executeString("sofia_contact " .. username_uri)
+									--end
+										--local username_contact_multiple = {}
+										for contato in string.gmatch(contact, "([^,]+)") do 
+										--session:consoleLog("info", "contact striped.: " .. tostring(contato) .. "\n");
+											table.insert (username_contact_multiple, contato)
+										end
+									end
+									if #username_contact_multiple > 0 then
+										for i, contato in ipairs(username_contact_multiple) do
+											session:consoleLog("info", "contact striped.: " .. tostring(contato) .. "\n");
+											if contacts == "" then
+												contacts = dial_string_user ..  contato
+											else
+												contacts = contacts .. "," .. dial_string_user .. contato
+											end
+										end
+									else
+										if contacts == "" then
+                                                                                        contacts = dial_string_user ..  contact
+                                                                                else
+                                                                                        contacts = contacts .. "," .. dial_string_user .. contact
+                                                                                end
+
+									end
+								end
+								if dial_string == nil then
+									dial_string = dial_string_user .. contacts
+								else
+									dial_string = dial_string .. "," .. contacts
+								end
+							end
+							session:consoleLog("info", "Dial String.: " .. tostring(dial_string) .. "\n");
+							--fim tjpr update
+
 							if (verto_enabled == 'true') then
 								dial_string = dial_string .. ","..api:executeString("verto_contact ".. row.destination_number .."@" ..domain_name);
 							end
@@ -1148,6 +1298,7 @@
 
 					--add a delimiter between destinations
 						if (dial_string ~= nil) then
+							session:consoleLog("info", "[ring group] dial_string: " .. dial_string .. "\n");
 							--freeswitch.consoleLog("notice", "[ring group] dial_string: " .. dial_string .. "\n");
 							if (x == 1) then
 								if (ring_group_strategy == "enterprise") then
@@ -1178,7 +1329,7 @@
 			end
 
 		--release dbh before bridge
-			dbh:release();
+				dbh:release();
 
 		--session execute
 			if (session:ready()) then
