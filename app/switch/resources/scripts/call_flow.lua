@@ -55,6 +55,8 @@ local domain_name = session:getVariable("domain_name");
 local domain_uuid = session:getVariable("domain_uuid");
 local call_flow_uuid = session:getVariable("call_flow_uuid");
 local feature_code = session:getVariable("feature_code");
+local from_user = session:getVariable("sip_from_user");
+local destination_number = session:getVariable("destination_number");
 
 if not call_flow_uuid then
 	log.warning('Can not get call flow uuid')
@@ -201,7 +203,38 @@ else
 
 	--execute the application
 		if (session:ready()) then
-			session:execute(app, data);
+			sip_h_Referred = session:getVariable("sip_h_Referred-By");
+			--session:execute("info")
+			if sip_h_Referred ~= nil then
+				ramal, dominio = sip_h_Referred:match("<sip:(%d+)@([^:]+)")
+				--session:consoleLog("info", "DEBUG - dado de chamada h_referred " .. sip_h_Referred);
+				--session:consoleLog("info", "DEBUG - dado de chamada ramal " .. ramal);
+				--session:consoleLog("info", "DEBUG - dado de chamada dominio " .. dominio);
+				--session:consoleLog("info", "DEBUG - dado de chamada data " .. data);
+				if data == ramal .. " XML " .. domain_name then
+					local destino =  "user/"..call_flow_extension.."@"..domain_name
+					session:execute("bridge", destino)
+				else
+					--session:consoleLog("info", "DEBUG - dado de chamada transferida " .. data);
+					session:execute(app, data);
+				end
+			else
+				if data == from_user .. " XML " .. domain_name then
+					local destino = "user/"..call_flow_extension.."@"..domain_name
+					--session:consoleLog("info", "DEBUG - destino "..destino)
+					session:execute("bridge", destino)
+				else
+					--session:consoleLog("info", "DEBUG - dado de chamada " .. data);
+					--session:execute("info")
+					if data == destination_number .." XML " .. domain_name then
+						--session:execute("info")
+						local destino = "user/"..destination_number.."@"..domain_name
+						session:execute("bridge", destino)
+					else
+						session:execute(app, data);
+					end
+				end
+			end
 		end
 
 	--timeout application
