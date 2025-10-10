@@ -257,6 +257,10 @@
 
 		--connect to FS database
 			local dbh = Database.new('switch')
+		--TJPR	
+			local dsn = session:getVariable("dsn");
+			local fsData = freeswitch.Dbh(dsn);
+		--TJPR
 
 		--check the database to get the uuid of a ringing call
 			call_hostname = "";
@@ -281,11 +285,14 @@
 
 			sql = sql .. "AND (1<>1 ";
 			local params = {};
+			sql = sql .. "OR presence_id = '" .. extension .. "@" .. domain_name .. "' ";
+	--[[TJPR COMENTOU
 			for key,extension in pairs(extensions) do
 				local param_name = "presence_id_" .. tostring(key);
 				sql = sql .. "OR presence_id = :" .. param_name .. " ";
 				params[param_name] = extension.."@"..domain_name;
 			end
+	--]]
 			sql = sql .. ") ";
 			--sql = sql .. "AND call_uuid IS NOT NULL ";
 			sql = sql .. "ORDER BY created_epoch DESC LIMIT 1 ";
@@ -293,6 +300,19 @@
 				log.noticef("SQL: %s; params: %s", sql, json.encode(params));
 			end
 			local is_child
+			--TJPR
+			fsData:query(sql,function(row)
+				is_child = (row.uuid == row.call_uuid)
+				uuid = row.uuid;
+                                if (row.call_uuid ~= nil) then
+                                       uuid = row.call_uuid;
+                                end
+                                call_hostname = row.hostname;			
+			end)
+			--TJPR
+
+			
+			--[[TJPR COMENTOU
 			dbh:query(sql, params, function(row)
 				--for key, val in pairs(row) do
 				--	log.notice("row "..key.." "..val);
@@ -305,6 +325,12 @@
 				end
 				call_hostname = row.hostname;
 			end);
+			--]]
+			if uuid ~= nil then
+                                freeswitch.consoleLog("notice", "DEBUG INTER - uuid " .. uuid .. "\n")
+                        else
+                                freeswitch.consoleLog("notice", "DEBUG INTER - uuid vazio \n")
+                        end
 
 			--log.notice("call_hostname: "..call_hostname);
 			if is_child then
@@ -341,6 +367,9 @@
 					return make_proxy_call(pickup_number, call_hostname)
 				end
 			end
+		---TJPR
+	                fsData:release();
+                ---TJPR
 
 		--release FS database
 			dbh:release()
