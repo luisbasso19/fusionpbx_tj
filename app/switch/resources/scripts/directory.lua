@@ -410,7 +410,7 @@
 			end
 		--get the digits
 			if (first_name) then
-				--freeswitch.consoleLog("notice", "[directory] first_name: --" .. first_name .. "--\n");
+					--freeswitch.consoleLog("notice", "[directory] first_name: --" .. first_name .. "--\n");
 					if (string.len(first_name) > 0) then
 							first_name_digits = dialpad_to_digit(string.sub(first_name, 1, 1));
 					end
@@ -419,7 +419,7 @@
 					end
 					if (string.len(first_name) > 2) then
 							first_name_digits = first_name_digits .. dialpad_to_digit(string.sub(first_name, 3, 3));
-					end
+				end
 			end
 			if (last_name) then
 				if (string.len(last_name) > 0) then

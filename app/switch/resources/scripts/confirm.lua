@@ -23,7 +23,7 @@
 --	Mark J Crane <markjcrane@fusionpbx.com>
 
 --include config.lua
-require "resources.functions.config";
+	require "resources.functions.config";
 
 --set variables
 	digit_timeout = "5000";
