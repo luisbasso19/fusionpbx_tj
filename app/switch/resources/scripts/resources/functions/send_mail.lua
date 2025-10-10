@@ -271,7 +271,7 @@ else
 
 			local subject = message[1]
 			local body = message[2] or ''
-
+			
 			--debug info
 			--freeswitch.consoleLog("notice", "[voicemail] from: " .. from .. "\n");
 			--freeswitch.consoleLog("notice", "[voicemail] subject: " .. subject .. "\n");
